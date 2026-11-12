@@ -74,6 +74,30 @@ open src-tauri/target/release/bundle/macos/Padturn.app
   - O seletor do Mac grava cores convertidas (o "vermelho" dele é `ff2600`, que sai laranja). Por isso ficou só como "Outra cor…".
   - Os backups automáticos guardam o valor exato de cada teste de cor do usuário.
 
+## Próximo: ações da camada (decidido em 2026-11-12, implementando)
+
+### Onde ficam
+
+No painel da direita, quando nada está selecionado. Ali já fica a "Iluminação da camada", então tudo que vale para a camada inteira fica junto, com o título "Camada N". A barra de cima continua só com coisas globais: camada, girar, iluminação, ler, backup e gravar.
+
+### Botões
+
+- **🗑 Limpar camada**
+  - Coloca todas as entradas da camada em "Nada": teclas e as 3 partes de cada knob.
+- **🎲 Sortear teclas**
+  - Dá a cada entrada da camada uma tecla diferente, ao acaso e sem repetição.
+  - A ordem das teclas usadas no sorteio:
+    1. F13–F24, que não atrapalham nada e são ideais para o remapeador do Lightroom.
+    2. Depois, as mesmas com ⌃, ⌥, ⇧ e combinações desses.
+  - Pula combinações já usadas nas outras camadas, para não haver conflito no remapeador.
+  - Para 12 teclas + 4 knobs são 24 entradas.
+
+### Comportamento dos dois
+
+- Pedem confirmação antes de agir.
+- Só criam alterações pendentes, como qualquer edição. Nada vai para o teclado até clicar em Gravar.
+- "Descartar alterações" desfaz.
+
 ## Regras do usuário
 
 - Nunca gravar no teclado sem backup funcionando e sem autorização.
