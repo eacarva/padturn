@@ -60,7 +60,7 @@ open src-tauri/target/release/bundle/macos/Padturn.app
    - O app original só chama os modos de "LED Mode0..5". Pelo teclado do usuário: Modo 1 = cores por tecla; Modo 2 = sem luz (camada 1 do usuário).
    - O desenho só mostra cor por tecla no Modo 1.
    - Teste: camada 3 → Modo 2 → Gravar → "Gravado e conferido" → Modo 1 → Gravar → "Gravado e conferido".
-   - Falta descobrir o que fazem os modos 0, 3, 4 e 5. Quem tiver o teclado na mão deve testar e dar nome em `LED_MODES` (`ui/app.js`).
+   - Falta descobrir o que fazem os modos 0, 3, 4 e 5. Quem tiver o teclado na mão deve testar e dar nome em `LED_MODE_NAMES` (`ui/app.js`), por modelo e firmware.
 3. *(item fundido no 2.)*
 4. **Outros modelos.** O desenho e a ordem dos knobs fora do 12+4 são um palpite. O destaque ao vivo confirma quando alguém tiver um desses modelos.
 5. **CI e instalador do Windows.**

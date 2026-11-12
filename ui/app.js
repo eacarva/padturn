@@ -312,13 +312,19 @@ function ledKeySection(c) {
     setLed(S.layer, { ...l, rgb });
   };
   return section("Luz da tecla", el("div", { className: "row" }, color, all),
-    showsKeyColors(l) ? null : el("p", { className: "hint", textContent: `A camada está no ${LED_MODES[l.mode]}; a cor por tecla só aparece no Modo 1 (botão Luz).` }));
+    showsKeyColors(l) ? null : el("p", { className: "hint", textContent: `A camada está no ${ledModes()[l.mode]}; a cor por tecla só aparece no Modo 1 (botão Luz).` }));
 }
 
-// The vendor app only labels them "LED Mode0..5". shortcut: names for 1 and 2 come from the user's keyboard
-// (layer in mode 1 shows the per-key colors, layer in mode 2 stays dark); 0, 3, 4, 5 are effects not yet identified.
-const LED_MODES = ["Modo 0", "Modo 1 — cores por tecla", "Modo 2 — sem luz", "Modo 3", "Modo 4", "Modo 5"];
+// The vendor app only labels them "LED Mode0..5": the effect lives in each keyboard's firmware, so names are
+// kept per model + firmware ("keys+knobs/fw"). Unknown keyboards get plain "Modo N".
+// 12+4/fw11 names come from the user's keyboard (mode 1 shows per-key colors, mode 2 stays dark).
+const LED_MODE_NAMES = { "12+4/fw11": { 1: "cores por tecla", 2: "sem luz" } };
 const PER_KEY_MODE = 1;
+const ledModes = () => {
+  const known = S.snap ? LED_MODE_NAMES[`${S.snap.keys}+${S.snap.knobs}/fw${S.snap.firmware}`] ?? {} : {};
+  return [0, 1, 2, 3, 4, 5].map((m) => (known[m] ? `Modo ${m} — ${known[m]}` : `Modo ${m}`));
+};
+// shortcut: assumes mode 1 = per-key colors on every model (true on the vendor's own screen); revisit per firmware.
 const showsKeyColors = (l) => l?.mode === PER_KEY_MODE;
 
 function renderLightMenu() {
@@ -326,7 +332,7 @@ function renderLightMenu() {
   $("light").hidden = !S.snap;
   if (!l) { body.replaceChildren(el("p", { className: "hint", textContent: "Este modelo não informou luz." })); return; }
   const pick = (next) => { $("light").open = false; setLed(S.layer, next); };
-  const modes = LED_MODES.map((name, m) => {
+  const modes = ledModes().map((name, m) => {
     const b = el("button", { textContent: (l.mode === m ? "✓ " : "　") + name });
     b.onclick = () => pick({ ...l, mode: m });
     return b;
@@ -341,7 +347,7 @@ function ledLayerSection() {
   const l = led(S.layer);
   if (!l) return null;
   return section(`Iluminação da camada ${S.layer}`,
-    seg(LED_MODES.map((name, m) => [m, name.replace(" — ", " · ")]), l.mode, (mode) => setLed(S.layer, { ...l, mode }), "modes"),
+    seg(ledModes().map((name, m) => [m, name.replace(" — ", " · ")]), l.mode, (mode) => setLed(S.layer, { ...l, mode }), "modes"),
     el("p", { className: "hint", textContent: "Também no botão Luz, lá em cima. A cor de cada tecla fica ao selecionar a tecla." }));
 }
 
