@@ -70,6 +70,10 @@ open src-tauri/target/release/bundle/macos/Padturn.app
 - Knobs: a tampa gira para o lado em que o knob foi girado (30° por clique, acumulando). Apertar afunda o knob. Pedido do usuário; ainda não conferido com o knob físico.
 - Escolher "Tecla" sem tecla vira um rascunho: aparece no painel, mas não conta para Gravar.
 
+- Cor por tecla: paleta do próprio fabricante (52 cores, `ui/led.js`), gravada sem conversão, como o app original faz (`QColor::red/green/blue` direto nos bytes, em `FUN_100097870`).
+  - O seletor do Mac grava cores convertidas (o "vermelho" dele é `ff2600`, que sai laranja). Por isso ficou só como "Outra cor…".
+  - Os backups automáticos guardam o valor exato de cada teste de cor do usuário.
+
 ## Regras do usuário
 
 - Nunca gravar no teclado sem backup funcionando e sem autorização.

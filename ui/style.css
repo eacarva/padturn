@@ -79,6 +79,13 @@ main { flex: 1; display: flex; min-height: 0; }
   transition: transform .25s var(--spring), box-shadow .25s var(--ease); }
 .ctl::before { content: ""; position: absolute; inset: 7px 7px 11px; border-radius: 9px; pointer-events: none;
   background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,0)); }
+.led-palette { display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; margin-bottom: 8px; }
+.led-palette button { aspect-ratio: 1; height: auto; padding: 0; border-radius: 5px; background: var(--c); box-shadow: inset 0 0 0 1px rgba(0,0,0,.15), 0 0 10px -2px var(--c); transition: transform .15s var(--ease); }
+.led-palette button:hover { transform: scale(1.08); }
+.led-palette button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--bg, #fff), 0 0 0 4px var(--accent); }
+.led-palette button.off { background: repeating-linear-gradient(135deg, var(--ctrl) 0 4px, color-mix(in srgb, var(--ctrl) 80%, #000) 4px 8px); }
+label.other { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+label.other input { width: 22px; height: 22px; padding: 0; border: 0; background: none; }
 .modes-list { display: flex; flex-direction: column; gap: 2px; padding: 3px; border-radius: 9px; background: var(--ctrl); box-shadow: var(--ctrl-shadow); }
 .modes-list button { display: flex; align-items: center; gap: 10px; height: 30px; padding: 0 10px; border-radius: 6px; background: transparent; box-shadow: none; text-align: left; transition: background .15s; }
 .modes-list button:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }

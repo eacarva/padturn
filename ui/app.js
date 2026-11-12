@@ -1,5 +1,6 @@
 import { MODS, MEDIA, MOUSE, MACRO_MAX, MACRO_DELAY, keyName, stepName, decode, encode, same, text, codeToUsage, modOfCode } from "./model.js";
 import { layoutFor, ledIndex } from "./layouts.js";
+import { emitted, PALETTE } from "./led.js";
 
 const invoke = window.__TAURI__?.core?.invoke ?? (async () => { throw new Error("Abra pelo app Padturn."); });
 const $ = (id) => document.getElementById(id);
@@ -171,7 +172,7 @@ function renderBoard() {
     n.classList.toggle("edited", ids.some((i) => S.edits.has(key(S.layer, i))));
     const li = ledIndex(c);
     if (li !== null) {
-      n.style.setProperty("--led", showsKeyColors(l) ? rgbHex(l.rgb, li) : "transparent");
+      n.style.setProperty("--led", showsKeyColors(l) ? emitted(l.rgb.slice(li * 3, li * 3 + 3)) ?? "transparent" : "transparent");
       const fx = l && LED_FX[model()]?.[l.mode];
       if (fx) { n.dataset.fx = fx; n.style.setProperty("--ph", `${fx === "wave" ? -(c.x * 1.1 + c.y * 0.6) / 112 : -(c.x / 112) * 0.35}s`); } else delete n.dataset.fx;
     }
@@ -303,20 +304,29 @@ function macroEditor(a) {
 function ledKeySection(c) {
   const l = led(S.layer), li = ledIndex(c);
   if (!l || li === null) return null;
-  const color = el("input", { type: "color", value: rgbHex(l.rgb, li) });
-  color.oninput = () => {
-    const rgb = l.rgb.slice(); const v = color.value;
-    rgb.splice(li * 3, 3, parseInt(v.slice(1, 3), 16), parseInt(v.slice(3, 5), 16), parseInt(v.slice(5, 7), 16));
-    setLed(S.layer, { ...l, rgb });
+  const cur = l.rgb.slice(li * 3, li * 3 + 3);
+  const put = (rgb, keys) => {
+    const next = l.rgb.slice();
+    for (const k of keys) next.splice(k * 3, 3, ...rgb);
+    setLed(S.layer, { ...l, rgb: next });
   };
+  // Swatches show what the LED really emits, not the raw bytes (see led.js).
+  const grid = el("div", { className: "led-palette" }, ...PALETTE.map((p) => {
+    const look = emitted(p.send);
+    const b = el("button", { title: p.name, className: look ? "" : "off", style: look ? `--c:${look}` : "" });
+    b.setAttribute("aria-pressed", String(cur.join() === p.send.join()));
+    b.onclick = () => put(p.send, [li]);
+    return b;
+  }));
+  const other = el("input", { type: "color", value: rgbHex(l.rgb, li), title: "Seletor do Mac: as cores dele vêm convertidas e podem sair diferentes no LED" });
+  other.oninput = () => { const v = other.value; put([1, 3, 5].map((i) => parseInt(v.slice(i, i + 2), 16)), [li]); };
   const all = el("button", { className: "link", textContent: "Usar esta cor em todas as teclas" });
-  all.onclick = () => {
-    const v = color.value, rgb = l.rgb.slice();
-    for (const k of S.layout.controls) if (!k.knob) rgb.splice((k.id - 1) * 3, 3, parseInt(v.slice(1, 3), 16), parseInt(v.slice(3, 5), 16), parseInt(v.slice(5, 7), 16));
-    setLed(S.layer, { ...l, rgb });
-  };
-  return section("Luz da tecla", el("div", { className: "row" }, color, all),
-    showsKeyColors(l) ? null : el("p", { className: "hint", textContent: `A camada está no ${ledModes()[shownMode(l.mode)]}; a cor por tecla não aparece nesse modo (botão Iluminação).` }));
+  all.onclick = () => put(cur, S.layout.controls.filter((k) => !k.knob).map((k) => k.id - 1));
+  const look = emitted(cur);
+  return section("Luz da tecla", grid,
+    el("div", { className: "row" }, el("label", { className: "other" }, other, "Outra cor…"), all),
+    el("p", { className: "hint", textContent: (look ? "Cores da paleta do fabricante. O seletor do Mac pode desviar a cor (o vermelho dele vira laranja)." : "Tecla apagada.") +
+      (showsKeyColors(l) ? "" : ` A camada está no ${ledModes()[shownMode(l.mode)]}: a cor por tecla não aparece nesse modo.`) }));
 }
 
 // The vendor app only labels them "LED Mode0..5": the effect lives in each keyboard's firmware, so names are
