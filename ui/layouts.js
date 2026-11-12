@@ -21,16 +21,16 @@ function grid(keys, x0, y0) {
 const knob = (keys, n, x, y, size) => ({ id: keys + 1 + n * 3, knob: n + 1, x, y, size });
 
 function measured12x4() {
-  const { out } = grid(12, M, 73);  // keys centered on the taller board
+  const { out } = grid(12, M, 88);  // keys centered on the taller board
   return {
-    w: 800, h: 470,  // vendor is 430; +40 so each knob's turn pills get air above and below
+    w: 800, h: 500,  // vendor is 430; +70 so each knob's turn pills get air above and below
     controls: [
       ...out,
-      // vendor sizes; 42px between knobs for the turn pills (12px gap + 20px pill + air)
-      knob(12, 0, 640, 365, 124), // big, bottom
-      knob(12, 1, 568, 81, 76),   // small, top-left (16-18)
-      knob(12, 2, 712, 81, 76),   // small, top-right (19-21)
-      knob(12, 3, 640, 211, 100), // medium, middle (22-24)
+      // vendor sizes; 50px between knobs for the turn pills (20px gap + 20px pill + air)
+      knob(12, 0, 640, 388, 124), // big, bottom
+      knob(12, 1, 568, 88, 76),   // small, top-left (16-18)
+      knob(12, 2, 712, 88, 76),   // small, top-right (19-21)
+      knob(12, 3, 640, 226, 100), // medium, middle (22-24)
     ],
   };
 }

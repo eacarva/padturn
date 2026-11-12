@@ -244,7 +244,7 @@ input[type=color]::-webkit-color-swatch { border: 0; border-radius: 7px; box-sha
 .sec > input + .row { margin-top: 8px; }
 /* knob turns: two pills under the knob, kept under it on screen whatever the board rotation */
 .ctl.knob .turns { position: absolute; inset: 0; pointer-events: none; transform: rotate(var(--counter)); transition: transform .65s var(--ease); }
-.ctl.knob .turns { display: flex; justify-content: center; align-items: flex-start; gap: 10px; padding-top: calc(100% + 12px); }
+.ctl.knob .turns { display: flex; justify-content: center; align-items: flex-start; gap: 10px; padding-top: calc(100% + 20px); }
 .ctl .pill { pointer-events: auto; height: 20px; padding: 0 8px; border: 0; border-radius: 10px; max-width: 66px; flex: none;
   font: 500 10.5px ui-monospace, "SF Mono", Menlo, Consolas, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   color: rgba(255,255,255,.78); background: linear-gradient(#3a3c42, #24262b); box-shadow: 0 0 0 .5px #15161a, 0 2px 4px -1px rgba(0,0,0,.35);
