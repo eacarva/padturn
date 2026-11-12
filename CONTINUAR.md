@@ -50,9 +50,11 @@ open src-tauri/target/release/bundle/macos/Padturn.app
 
 ### Pendente, em ordem
 
-1. **Teste de gravação no hardware.**
-   - Passo a passo: camada 3, tecla 1 (vazia) → F13 → Gravar → conferir o backup automático e o status "Gravado e conferido" → voltar a tecla para Nada → Gravar → comparar com `backups/backup-teclado-original.json`.
-   - Resultado: ver a seção "Teste de gravação" no fim deste arquivo.
+1. **Gravação no hardware — testada e funcionando (2026-11-12).**
+   - Teste: camada 3, tecla 1 → F13 → Gravar → "Gravado e conferido" → volta para Nada → Gravar → "Gravado e conferido".
+   - Os backups automáticos ficam em `~/Library/Application Support/app.padturn/backups/`.
+   - O primeiro backup é idêntico ao original. O segundo difere só por F13, o que prova que a gravação chegou ao teclado.
+   - Commit `03 FD FE FF` confirmado.
 2. **Luz da camada 1.**
    - O usuário apagou as cores no app original, mas o Padturn mostra cores.
    - Lido do teclado: camada 1 = modo 2 com uma paleta arco-íris; camadas 2 e 3 = modo 1 com cor fixa.
@@ -64,6 +66,11 @@ open src-tauri/target/release/bundle/macos/Padturn.app
 3. **Gravação de luz** (`03 FE B0 camada-1 modo rgb[48]`): não testada.
 4. **Outros modelos.** O desenho e a ordem dos knobs fora do 12+4 são um palpite. O destaque ao vivo confirma quando alguém tiver um desses modelos.
 5. **CI e instalador do Windows.**
+
+## Últimas mudanças
+
+- Knobs: a tampa gira para o lado em que o knob foi girado (30° por clique, acumulando). Apertar afunda o knob. Pedido do usuário; ainda não conferido com o knob físico.
+- Escolher "Tecla" sem tecla vira um rascunho: aparece no painel, mas não conta para Gravar.
 
 ## Regras do usuário
 

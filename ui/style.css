@@ -97,13 +97,14 @@ main { flex: 1; display: flex; min-height: 0; }
 .ctl.knob .cap { position: absolute; inset: 10%; border-radius: 50%; pointer-events: none;
   background: radial-gradient(circle at 38% 30%, #62666f, #2b2d33 52%, #18191c);
   box-shadow: inset 0 1px 1px rgba(255,255,255,.28), inset 0 -3px 6px rgba(0,0,0,.5), 0 3px 6px rgba(0,0,0,.55);
-  transition: transform .6s var(--spring); }
+  transform: rotate(var(--turn, 0deg)); transition: transform .28s var(--ease); }
 .ctl.knob .cap::after { content: ""; position: absolute; top: 6%; left: 50%; width: 3px; height: 12%; margin-left: -1.5px; border-radius: 2px;
   background: var(--accent); box-shadow: 0 0 6px rgba(10,132,255,.9); }
 .ctl.knob:hover { transform: none; }
-.ctl.knob:hover .cap { transform: rotate(24deg); }
-.ctl.knob.lit { transform: scale(.97); }
-.ctl.knob.lit .cap { transform: rotate(-30deg); }
+.ctl.knob:hover .cap { transform: rotate(calc(var(--turn, 0deg) + 8deg)); }
+.ctl.knob.lit { transform: none; }
+.ctl.knob.lit.pressed { transform: scale(.93); }
+.ctl.knob.lit.pressed .cap { box-shadow: inset 0 3px 8px rgba(0,0,0,.7), 0 1px 2px rgba(0,0,0,.5); }
 .ctl.knob .label { max-width: 80%; }
 .ctl.knob .code { font-size: 9.5px; max-width: 120px; }
 .ctl.knob.small .code { display: none; }

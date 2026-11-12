@@ -31,7 +31,9 @@ const S = {
 };
 const key = (l, i) => `${l}-${i}`;
 const raw = (l, i) => S.snap?.layers[l - 1][i - 1];
-const action = (l, i) => S.edits.get(key(l, i)) ?? (raw(l, i) ? decode(raw(l, i)) : null);
+// drafts: kind picked in the panel but still empty (e.g. "Tecla" before a key) - shown, never written.
+const drafts = new Map();
+const action = (l, i) => S.edits.get(key(l, i)) ?? drafts.get(key(l, i)) ?? (raw(l, i) ? decode(raw(l, i)) : null);
 const ctlOf = (i) => S.layout.controls.find((c) => c.id === i || (c.knob && i >= c.id && i <= c.id + 2));
 const led = (l) => S.ledEdits.get(l) ?? S.snap?.leds?.[l - 1] ?? null;
 const pending = () => S.edits.size + S.ledEdits.size;
@@ -41,7 +43,10 @@ const rgbHex = (rgb, k) => "#" + rgb.slice(k * 3, k * 3 + 3).map((x) => x.toStri
 function setAction(a) {
   const l = S.layer, i = S.selected, orig = decode(raw(l, i));
   const norm = (x) => (x.kind === "keys" && !x.key && !x.mods) || (x.kind === "macro" && !x.steps.length) ? { kind: "none" } : x;
-  same(norm(a), norm(orig)) ? S.edits.delete(key(l, i)) : S.edits.set(key(l, i), a);
+  const k = key(l, i);
+  drafts.delete(k);
+  if (!same(norm(a), norm(orig))) S.edits.set(k, a);
+  else { S.edits.delete(k); if (!same(a, orig)) drafts.set(k, a); }
   render();
 }
 function setLed(l, next) {
@@ -56,7 +61,7 @@ async function run(msg, fn, done) {
   try {
     const snap = await fn();
     const relayout = !S.snap || snap.keys !== S.snap.keys || snap.knobs !== S.snap.knobs;
-    S.snap = snap; S.edits.clear(); S.ledEdits.clear();
+    S.snap = snap; S.edits.clear(); S.ledEdits.clear(); drafts.clear();
     if (relayout) { S.layout = layoutFor(snap.keys, snap.knobs); S.selected = null; buildBoard(); }
     status(`${done} · ${snap.keys} teclas, ${snap.knobs} knobs, firmware ${snap.firmware}`);
   } catch (e) { status(String(e)); }
@@ -386,6 +391,12 @@ function flash(ids) {
   for (const i of ids) {
     const n = document.querySelector(`.ctl[data-id="${ctlOf(i).id}"]`);
     if (!n) continue;
+    const part = n.classList.contains("knob") ? i - ctlOf(i).id : -1; // 0 turn left, 1 press, 2 turn right
+    if (part === 0 || part === 2) {
+      n._turn = (n._turn ?? 0) + (part === 2 ? 30 : -30);  // one detent, accumulates like the real knob
+      n.style.setProperty("--turn", `${n._turn}deg`);
+    }
+    n.classList.toggle("pressed", part === 1);
     n.classList.remove("lit"); void n.offsetWidth;  // restart the ripple on repeated presses
     n.classList.add("lit"); clearTimeout(n._lit); n._lit = setTimeout(() => n.classList.remove("lit"), 650);
   }
@@ -465,7 +476,7 @@ $("read").onclick = readAll;
 $("save").onclick = save;
 $("export").onclick = () => { $("backup").open = false; exportBackup(); };
 $("restore").onclick = () => { $("backup").open = false; restoreBackup(); };
-$("discard").onclick = () => { $("backup").open = false; S.edits.clear(); S.ledEdits.clear(); render(); };
+$("discard").onclick = () => { $("backup").open = false; S.edits.clear(); S.ledEdits.clear(); drafts.clear(); render(); };
 $("stage").addEventListener("click", (e) => { if (e.target === $("stage")) { S.selected = null; S.capture = null; render(); } });
 document.addEventListener("click", (e) => { if (!e.target.closest("#backup")) $("backup").open = false; });
 
