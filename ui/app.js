@@ -128,7 +128,7 @@ function buildBoard() {
   Object.assign(board.style, { width: `${S.layout.w}px`, height: `${S.layout.h}px` });
   for (const c of S.layout.controls) {
     const n = document.createElement("div");
-    n.className = "ctl" + (c.knob ? " knob" : "") + (c.knob && c.size < 100 ? " small" : "");
+    n.className = "ctl" + (c.knob ? " knob" : "") + (c.knob && c.size < 80 ? " small" : "");
     n.title = c.knob ? `Knob ${c.knob}` : `Tecla ${c.id}`;
     n.dataset.id = c.id;
     n.tabIndex = 0;
@@ -643,6 +643,11 @@ window.addEventListener("wheel", (e) => {
 document.body.classList.toggle("mac", /Mac/.test(navigator.platform));
 document.querySelectorAll("#layers button").forEach((b) => (b.onclick = () => { S.layer = Number(b.dataset.layer); S.capture = null; render(); }));
 // rotation keeps growing so the board always turns the same way; only the stored value wraps.
+// clicking anything on the stage that is not a control works like clicking outside the keyboard
+$("stage").addEventListener("click", (e) => {
+  if (e.target.closest(".ctl") || S.selected == null) return;
+  S.selected = null; S.capture = null; render();
+});
 $("rotate").onclick = () => { S.rotation += 90; persist("rotation", S.rotation % 360); fitBoard(); };
 $("read").onclick = readAll;
 $("save").onclick = save;
