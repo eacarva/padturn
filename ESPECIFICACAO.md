@@ -43,7 +43,8 @@ Firmware < 10 usa outro formato (PHY1). O Padturn recusa esses modelos com uma m
 ### Luz
 
 - 16 triplos RGB: 12 teclas e depois 4 anéis dos knobs.
-- Modos 0–5. O efeito de cada modo depende do modelo.
+- Modos 0–5 (o app original só os chama de "LED Mode0..5"). Confirmado no teclado do usuário: Modo 1 = cores por tecla, Modo 2 = sem luz. Os outros modos são efeitos ainda não identificados.
+- Gravação de teclas e de luz confirmada no hardware em 2026-11-12.
 - No teclado do usuário: camada 1 está no modo 2 (arco-íris), camada 2 no modo 1 (ciano), camada 3 no modo 1 (vermelho escuro).
 
 ## 3. Modelos
@@ -97,7 +98,6 @@ O usuário usa o teclado girado 180°.
 
 ## 6. Ainda não confirmado no hardware
 
-- Gravação com o commit `03 FD FE FF` e gravação de luz.
 - Desenho e ordem dos knobs em modelos diferentes do 12+4.
 
 ## 7. Build

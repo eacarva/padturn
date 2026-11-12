@@ -40,7 +40,7 @@ open src-tauri/target/release/bundle/macos/Padturn.app
 
 ### Funciona e foi conferido
 
-- Leitura das 3 camadas, dos knobs e das cores.
+- Leitura e gravação das 3 camadas (teclas e luz), dos knobs e das cores.
 - Desenho girável. O usuário usa o teclado de cabeça para baixo (180°).
 - Posição dos knobs conferida com os knobs físicos.
 - Captura de tecla real (inclusive numpad e modificadores direitos F5–F8) e teclado virtual com layout real.
@@ -55,15 +55,13 @@ open src-tauri/target/release/bundle/macos/Padturn.app
    - Os backups automáticos ficam em `~/Library/Application Support/app.padturn/backups/`.
    - O primeiro backup é idêntico ao original. O segundo difere só por F13, o que prova que a gravação chegou ao teclado.
    - Commit `03 FD FE FF` confirmado.
-2. **Luz da camada 1.**
-   - O usuário apagou as cores no app original, mas o Padturn mostra cores.
-   - Lido do teclado: camada 1 = modo 2 com uma paleta arco-íris; camadas 2 e 3 = modo 1 com cor fixa.
-   - Hipótese: só um dos modos usa as cores por tecla, e o modo 2 deve ser "apagado". Os botões no original se chamam `LED_Mode_0`..`LED_Mode_5`.
-   - Como confirmar os nomes: abrir a aba RGB LED do MINI_KEYBOARD e comparar com `Widget::Read_RgbLed_DataDsp` em `re/decomp.c`.
-   - Correção no Padturn:
-     - Dar nome a cada modo, por exemplo "Apagado".
-     - Só mostrar a cor por tecla no modo que a usa.
-3. **Gravação de luz** (`03 FE B0 camada-1 modo rgb[48]`): não testada.
+2. **Luz — feita e gravação testada (2026-11-12).**
+   - Botão "Luz" na barra: modo da camada e "Apagar a cor de todas as teclas".
+   - O app original só chama os modos de "LED Mode0..5". Pelo teclado do usuário: Modo 1 = cores por tecla; Modo 2 = sem luz (camada 1 do usuário).
+   - O desenho só mostra cor por tecla no Modo 1.
+   - Teste: camada 3 → Modo 2 → Gravar → "Gravado e conferido" → Modo 1 → Gravar → "Gravado e conferido".
+   - Falta descobrir o que fazem os modos 0, 3, 4 e 5. Quem tiver o teclado na mão deve testar e dar nome em `LED_MODES` (`ui/app.js`).
+3. *(item fundido no 2.)*
 4. **Outros modelos.** O desenho e a ordem dos knobs fora do 12+4 são um palpite. O destaque ao vivo confirma quando alguém tiver um desses modelos.
 5. **CI e instalador do Windows.**
 

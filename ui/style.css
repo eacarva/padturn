@@ -56,6 +56,9 @@ body.mac .toolbar { padding-left: 84px; }
   border-radius: 10px; box-shadow: 0 0 0 .5px rgba(0,0,0,.15), 0 10px 30px rgba(0,0,0,.18); transform-origin: top right; animation: pop .2s var(--ease); }
 .menu-body button { text-align: left; background: transparent; box-shadow: none; border-radius: 5px; height: 26px; }
 .menu-body button:hover:not(:disabled) { background: var(--accent); color: #fff; }
+.menu-title { font-weight: 600; font-size: 12px; padding: 4px 8px 6px; margin: 0; }
+.menu-body .hint { padding: 4px 8px; margin: 0; max-width: 250px; }
+#light .menu-body { left: 0; right: auto; }
 .menu-body hr { border: 0; height: 1px; background: var(--line); margin: 4px 6px; }
 @keyframes pop { from { opacity: 0; transform: scale(.95); } }
 

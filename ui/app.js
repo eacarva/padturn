@@ -170,11 +170,12 @@ function renderBoard() {
     n.classList.toggle("selected", ids.includes(S.selected));
     n.classList.toggle("edited", ids.some((i) => S.edits.has(key(S.layer, i))));
     const li = ledIndex(c);
-    if (li !== null) n.style.setProperty("--led", l ? rgbHex(l.rgb, li) : "transparent");
+    if (li !== null) n.style.setProperty("--led", showsKeyColors(l) ? rgbHex(l.rgb, li) : "transparent");
   }
 }
 
 function renderToolbar() {
+  renderLightMenu();
   document.querySelectorAll("#layers button").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.layer) === S.layer)));
   const on = document.querySelector(`#layers button[data-layer="${S.layer}"]`);
   $("layers").style.setProperty("--x", `${on.offsetLeft}px`); $("layers").style.setProperty("--w", `${on.offsetWidth}px`);
@@ -310,15 +311,38 @@ function ledKeySection(c) {
     for (const k of S.layout.controls) if (!k.knob) rgb.splice((k.id - 1) * 3, 3, parseInt(v.slice(1, 3), 16), parseInt(v.slice(3, 5), 16), parseInt(v.slice(5, 7), 16));
     setLed(S.layer, { ...l, rgb });
   };
-  return section("Luz da tecla", el("div", { className: "row" }, color, all));
+  return section("Luz da tecla", el("div", { className: "row" }, color, all),
+    showsKeyColors(l) ? null : el("p", { className: "hint", textContent: `A camada está no ${LED_MODES[l.mode]}; a cor por tecla só aparece no Modo 1 (botão Luz).` }));
+}
+
+// The vendor app only labels them "LED Mode0..5". shortcut: names for 1 and 2 come from the user's keyboard
+// (layer in mode 1 shows the per-key colors, layer in mode 2 stays dark); 0, 3, 4, 5 are effects not yet identified.
+const LED_MODES = ["Modo 0", "Modo 1 — cores por tecla", "Modo 2 — sem luz", "Modo 3", "Modo 4", "Modo 5"];
+const PER_KEY_MODE = 1;
+const showsKeyColors = (l) => l?.mode === PER_KEY_MODE;
+
+function renderLightMenu() {
+  const body = $("light-body"), l = led(S.layer);
+  $("light").hidden = !S.snap;
+  if (!l) { body.replaceChildren(el("p", { className: "hint", textContent: "Este modelo não informou luz." })); return; }
+  const pick = (next) => { $("light").open = false; setLed(S.layer, next); };
+  const modes = LED_MODES.map((name, m) => {
+    const b = el("button", { textContent: (l.mode === m ? "✓ " : "　") + name });
+    b.onclick = () => pick({ ...l, mode: m });
+    return b;
+  });
+  const off = el("button", { textContent: "　Apagar a cor de todas as teclas" });
+  off.onclick = () => pick({ ...l, rgb: l.rgb.map(() => 0) });
+  body.replaceChildren(el("p", { className: "menu-title", textContent: `Luz da camada ${S.layer}` }), ...modes, el("hr"), off,
+    el("p", { className: "hint", textContent: "A cor de cada tecla é escolhida ao clicar na tecla (vale no Modo 1)." }));
 }
 
 function ledLayerSection() {
   const l = led(S.layer);
   if (!l) return null;
   return section(`Iluminação da camada ${S.layer}`,
-    seg([0, 1, 2, 3, 4, 5].map((m) => [m, `Modo ${m}`]), l.mode, (mode) => setLed(S.layer, { ...l, mode }), "modes"),
-    el("p", { className: "hint", textContent: "Os efeitos de cada modo dependem do modelo. A cor de cada tecla fica ao selecionar a tecla." }));
+    seg(LED_MODES.map((name, m) => [m, name.replace(" — ", " · ")]), l.mode, (mode) => setLed(S.layer, { ...l, mode }), "modes"),
+    el("p", { className: "hint", textContent: "Também no botão Luz, lá em cima. A cor de cada tecla fica ao selecionar a tecla." }));
 }
 
 function render() { renderToolbar(); renderBoard(); renderEditor(); }
@@ -478,7 +502,7 @@ $("export").onclick = () => { $("backup").open = false; exportBackup(); };
 $("restore").onclick = () => { $("backup").open = false; restoreBackup(); };
 $("discard").onclick = () => { $("backup").open = false; S.edits.clear(); S.ledEdits.clear(); drafts.clear(); render(); };
 $("stage").addEventListener("click", (e) => { if (e.target === $("stage")) { S.selected = null; S.capture = null; render(); } });
-document.addEventListener("click", (e) => { if (!e.target.closest("#backup")) $("backup").open = false; });
+document.addEventListener("click", (e) => { for (const m of ["backup", "light"]) if (!e.target.closest("#" + m)) $(m).open = false; });
 
 buildBoard();
 render();
