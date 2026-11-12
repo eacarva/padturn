@@ -121,7 +121,7 @@ main { flex: 1; display: flex; min-height: 0; }
 .ctl:active, .ctl.lit { transform: translateY(1px) scale(.96); transition-duration: .08s; }
 .ctl.selected { box-shadow: 0 0 0 3px var(--accent), 0 0 0 8px var(--accent-soft), 0 8px 14px -6px rgba(0,0,0,.5); }
 .ctl.lit::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; animation: ripple .65s var(--ease) forwards; }
-@keyframes ripple { from { box-shadow: 0 0 0 0 rgba(48,209,88,.95), inset 0 0 0 2px rgba(48,209,88,.9); } to { box-shadow: 0 0 0 16px rgba(48,209,88,0), inset 0 0 0 2px rgba(48,209,88,0); } }
+@keyframes ripple { from { box-shadow: 0 0 0 0 rgba(10,132,255,.95), inset 0 0 0 2px rgba(10,132,255,.9); } to { box-shadow: 0 0 0 16px rgba(10,132,255,0), inset 0 0 0 2px rgba(10,132,255,0); } }
 
 .ctl .inner { position: relative; text-align: center; padding: 6px; pointer-events: none; transform: rotate(var(--counter)); transition: transform .65s var(--ease); }
 .ctl .label { font-weight: 650; font-size: 12px; letter-spacing: .01em; line-height: 1.15; max-width: 92px; overflow-wrap: anywhere; }
@@ -136,15 +136,14 @@ main { flex: 1; display: flex; min-height: 0; }
 .ctl.knob .cap { position: absolute; inset: 10%; border-radius: 50%; pointer-events: none;
   background: radial-gradient(circle at 38% 30%, #62666f, #2b2d33 52%, #18191c);
   box-shadow: inset 0 1px 1px rgba(255,255,255,.28), inset 0 -3px 6px rgba(0,0,0,.5), 0 3px 6px rgba(0,0,0,.55);
-  transform: rotate(var(--turn, 0deg)); transition: transform .28s var(--ease); }
+  transform: rotate(var(--turn, 0deg)); }
 .ctl.knob .cap::after { content: ""; position: absolute; top: 6%; left: 50%; width: 3px; height: 12%; margin-left: -1.5px; border-radius: 2px;
   background: var(--accent); box-shadow: 0 0 6px rgba(10,132,255,.9); }
-.ctl.knob:hover { transform: none; }
-.ctl.knob:hover .cap { transform: rotate(calc(var(--turn, 0deg) + 8deg)); }
+.ctl.knob:hover, .ctl.knob:has(.pill:active) { transform: none; }  /* a pill acts alone, the knob stays put */
 .ctl.knob.lit { transform: none; }
 .ctl.knob.lit.pressed { transform: scale(.93); }
 .ctl.knob.lit.pressed .cap { box-shadow: inset 0 3px 8px rgba(0,0,0,.7), 0 1px 2px rgba(0,0,0,.5); }
-.ctl.knob .label { max-width: 80%; }
+.ctl.knob .label { max-width: 96px; overflow-wrap: normal; text-align: center; letter-spacing: 0; }
 .ctl.knob.small .label { font-size: 11px; max-width: 64px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .ctl.edited:not(.selected) { box-shadow: 0 0 0 2.5px var(--warn), 0 0 0 7px rgba(255,159,10,.18), 0 8px 14px -6px rgba(0,0,0,.5); }
@@ -245,10 +244,16 @@ input[type=color]::-webkit-color-swatch { border: 0; border-radius: 7px; box-sha
 .sec > input + .row { margin-top: 8px; }
 /* knob turns: two pills under the knob, kept under it on screen whatever the board rotation */
 .ctl.knob .turns { position: absolute; inset: 0; pointer-events: none; transform: rotate(var(--counter)); transition: transform .65s var(--ease); }
-.ctl.knob .turns { display: flex; justify-content: center; align-items: flex-start; gap: 4px; padding-top: calc(100% + 6px); }
+.ctl.knob .turns { display: flex; justify-content: center; align-items: flex-start; gap: 10px; padding-top: calc(100% + 9px); }
 .ctl .pill { pointer-events: auto; height: 20px; padding: 0 8px; border: 0; border-radius: 10px; max-width: 66px; flex: none;
   font: 500 10.5px ui-monospace, "SF Mono", Menlo, Consolas, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  color: #2c2c2e; background: rgba(255,255,255,.62); box-shadow: 0 0 0 .5px rgba(0,0,0,.18); cursor: pointer; }
-.ctl .pill:hover { background: rgba(255,255,255,.85); }
-.ctl .pill.none { color: rgba(0,0,0,.35); }
-.ctl .pill.on { color: #fff; background: var(--accent); box-shadow: none; }
+  color: rgba(255,255,255,.78); background: linear-gradient(#3a3c42, #24262b); box-shadow: 0 0 0 .5px #15161a, 0 2px 4px -1px rgba(0,0,0,.35);
+  cursor: pointer; transition: background .2s, color .2s, transform .22s var(--ease), box-shadow .22s; }
+.ctl .pill:hover { color: #fff; background: linear-gradient(#45474e, #2c2e33); }
+.ctl .pill.none { color: rgba(255,255,255,.35); }
+.ctl .pill.on { color: #fff; background: var(--accent); box-shadow: 0 0 0 .5px rgba(0,0,0,.25); }
+.ctl .pill.turning { color: #fff; box-shadow: 0 0 0 1.5px var(--accent); }
+.ctl .pill.turning[data-part="0"] { transform: translateX(-3px); }
+.ctl .pill.turning[data-part="2"] { transform: translateX(3px); }
+/* each control on its own layer: hovering one key must not repaint (and shimmer) the others in the scaled, rotated board */
+.ctl, .ctl.knob .turns, .ctl.knob .cap { will-change: transform; }

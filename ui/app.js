@@ -542,6 +542,19 @@ function confirmSheet(title, body, ok) {
 
 // ---------- keyboard: capture and live highlight ----------
 
+// Knob cap follows its target angle with an eased per-frame chase, so detents arriving mid-motion blend
+// into one continuous turn instead of restarting a CSS transition each time.
+function spin(n) {
+  if (n._raf) return;
+  const step = () => {
+    n._cur = n._cur ?? 0;
+    const d = n._turn - n._cur;
+    n._cur = Math.abs(d) < 0.1 ? n._turn : n._cur + d * 0.18;
+    n.style.setProperty("--turn", `${n._cur}deg`);
+    n._raf = n._cur === n._turn ? 0 : requestAnimationFrame(step);
+  };
+  n._raf = requestAnimationFrame(step);
+}
 function flash(ids) {
   for (const i of ids) {
     const n = document.querySelector(`.ctl[data-id="${ctlOf(i).id}"]`);
@@ -549,7 +562,11 @@ function flash(ids) {
     const part = n.classList.contains("knob") ? i - ctlOf(i).id : -1; // 0 turn left, 1 press, 2 turn right
     if (part === 0 || part === 2) {
       n._turn = (n._turn ?? 0) + (part === 2 ? 30 : -30);  // one detent, accumulates like the real knob
-      n.style.setProperty("--turn", `${n._turn}deg`);
+      spin(n);
+      // the pill of the side it turns to leans that way while turning; a transition, so fast turns stay smooth
+      n.querySelectorAll(".pill").forEach((p) => p.classList.toggle("turning", Number(p.dataset.part) === part));
+      clearTimeout(n._pill); n._pill = setTimeout(() => n.querySelectorAll(".pill").forEach((p) => p.classList.remove("turning")), 260);
+      continue;  // a turn only moves the cap and its pill; no ripple (restarting it per detent looked jumpy)
     }
     n.classList.toggle("pressed", part === 1);
     n.classList.remove("lit"); void n.offsetWidth;  // restart the ripple on repeated presses
