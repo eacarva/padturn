@@ -57,7 +57,7 @@ open src-tauri/target/release/bundle/macos/Padturn.app
    - Commit `03 FD FE FF` confirmado.
 2. **Luz — feita e gravação testada (2026-11-12).**
    - Botão "Luz" na barra: modo da camada e "Apagar a cor de todas as teclas".
-   - O app original só chama os modos de "LED Mode0..5". Pelo teclado do usuário: Modo 0 = apagado, 1 = cores por tecla, 2 = sem luz, 3 = irradia luz para 3 teclas de cada lado, 4 = arco-íris (testado pelo usuário). Modo 5 ainda sem nome.
+   - O app original só chama os modos de "LED Mode0..5". Pelo teclado do usuário: Modo 0 = apagado, 1 = cores por tecla, 2 = sem luz, 3 = irradia luz para 3 teclas de cada lado, 4 = arco-íris, 5 = ondas de cor (testado pelo usuário). Cores por tecla valem nos modos 1 e 3 (PER_KEY_MODES). Falta: animação de cada modo no desenho (usuário vai mandar vídeo).
    - O desenho só mostra cor por tecla no Modo 1.
    - Teste: camada 3 → Modo 2 → Gravar → "Gravado e conferido" → Modo 1 → Gravar → "Gravado e conferido".
    - Falta descobrir o que fazem os modos 0, 3, 4 e 5. Quem tiver o teclado na mão deve testar e dar nome em `LED_MODE_NAMES` (`ui/app.js`), por modelo e firmware.

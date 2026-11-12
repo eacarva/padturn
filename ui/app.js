@@ -312,20 +312,22 @@ function ledKeySection(c) {
     setLed(S.layer, { ...l, rgb });
   };
   return section("Luz da tecla", el("div", { className: "row" }, color, all),
-    showsKeyColors(l) ? null : el("p", { className: "hint", textContent: `A camada está no ${ledModes()[l.mode]}; a cor por tecla só aparece no Modo 1 (botão Luz).` }));
+    showsKeyColors(l) ? null : el("p", { className: "hint", textContent: `A camada está no ${ledModes()[l.mode]}; a cor por tecla não aparece nesse modo (botão Luz).` }));
 }
 
 // The vendor app only labels them "LED Mode0..5": the effect lives in each keyboard's firmware, so names are
 // kept per model + firmware ("keys+knobs/fw"). Unknown keyboards get plain "Modo N".
 // 12+4/fw11 names come from the user's keyboard (mode 1 shows per-key colors, mode 2 stays dark).
-const LED_MODE_NAMES = { "12+4/fw11": { 0: "apagado", 1: "cores por tecla", 2: "sem luz", 3: "irradia para as teclas vizinhas", 4: "arco-íris" } };
-const PER_KEY_MODE = 1;
+const LED_MODE_NAMES = { "12+4/fw11": { 0: "apagado", 1: "cores por tecla", 2: "sem luz", 3: "irradia para as teclas vizinhas", 4: "arco-íris", 5: "ondas de cor" } };
+// Modes that light each key with its own configured color (mode 3 radiates it to the neighbours).
+const PER_KEY_MODES = { "12+4/fw11": [1, 3] };
+const model = () => (S.snap ? `${S.snap.keys}+${S.snap.knobs}/fw${S.snap.firmware}` : "");
 const ledModes = () => {
-  const known = S.snap ? LED_MODE_NAMES[`${S.snap.keys}+${S.snap.knobs}/fw${S.snap.firmware}`] ?? {} : {};
+  const known = S.snap ? LED_MODE_NAMES[model()] ?? {} : {};
   return [0, 1, 2, 3, 4, 5].map((m) => (known[m] ? `Modo ${m} — ${known[m]}` : `Modo ${m}`));
 };
-// shortcut: assumes mode 1 = per-key colors on every model (true on the vendor's own screen); revisit per firmware.
-const showsKeyColors = (l) => l?.mode === PER_KEY_MODE;
+// shortcut: unknown models assume only mode 1 uses per-key colors (as on the vendor's own screen).
+const showsKeyColors = (l) => l != null && (PER_KEY_MODES[model()] ?? [1]).includes(l.mode);
 
 function renderLightMenu() {
   const body = $("light-body"), l = led(S.layer);
@@ -340,7 +342,7 @@ function renderLightMenu() {
   const off = el("button", { textContent: "　Apagar a cor de todas as teclas" });
   off.onclick = () => pick({ ...l, rgb: l.rgb.map(() => 0) });
   body.replaceChildren(el("p", { className: "menu-title", textContent: `Luz da camada ${S.layer}` }), ...modes, el("hr"), off,
-    el("p", { className: "hint", textContent: "A cor de cada tecla é escolhida ao clicar na tecla (vale no Modo 1)." }));
+    el("p", { className: "hint", textContent: "A cor de cada tecla é escolhida ao clicar na tecla." }));
 }
 
 function ledLayerSection() {
