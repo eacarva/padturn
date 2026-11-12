@@ -170,7 +170,11 @@ function renderBoard() {
     n.classList.toggle("selected", ids.includes(S.selected));
     n.classList.toggle("edited", ids.some((i) => S.edits.has(key(S.layer, i))));
     const li = ledIndex(c);
-    if (li !== null) n.style.setProperty("--led", showsKeyColors(l) ? rgbHex(l.rgb, li) : "transparent");
+    if (li !== null) {
+      n.style.setProperty("--led", showsKeyColors(l) ? rgbHex(l.rgb, li) : "transparent");
+      const fx = l && LED_FX[model()]?.[l.mode];
+      if (fx) { n.dataset.fx = fx; n.style.setProperty("--ph", `${fx === "wave" ? -(c.x * 1.1 + c.y * 0.6) / 112 : -(c.x / 112) * 0.35}s`); } else delete n.dataset.fx;
+    }
   }
 }
 
@@ -312,13 +316,21 @@ function ledKeySection(c) {
     setLed(S.layer, { ...l, rgb });
   };
   return section("Luz da tecla", el("div", { className: "row" }, color, all),
-    showsKeyColors(l) ? null : el("p", { className: "hint", textContent: `A camada está no ${ledModes()[l.mode]}; a cor por tecla não aparece nesse modo (botão Luz).` }));
+    showsKeyColors(l) ? null : el("p", { className: "hint", textContent: `A camada está no ${ledModes()[shownMode(l.mode)]}; a cor por tecla não aparece nesse modo (botão Iluminação).` }));
 }
 
 // The vendor app only labels them "LED Mode0..5": the effect lives in each keyboard's firmware, so names are
 // kept per model + firmware ("keys+knobs/fw"). Unknown keyboards get plain "Modo N".
 // 12+4/fw11 names come from the user's keyboard (mode 1 shows per-key colors, mode 2 stays dark).
-const LED_MODE_NAMES = { "12+4/fw11": { 0: "apagado", 1: "cores por tecla", 2: "sem luz", 3: "irradia para as teclas vizinhas", 4: "arco-íris", 5: "ondas de cor" } };
+const LED_MODE_NAMES = { "12+4/fw11": { 1: "cores por tecla", 2: "sem luz", 3: "irradia para as teclas vizinhas", 4: "arco-íris", 5: "ondas de cor" } };
+// Animated modes drawn on the board. wave = mode 5 filmed on the user's keyboard (each key a different hue,
+// drifting through the rainbow, ~10 s per turn); rainbow = mode 4 filmed too (whole board cycles together,
+// ~3 s per turn, slight left-to-right gradient).
+const LED_FX = { "12+4/fw11": { 4: "rainbow", 5: "wave" } };
+// Modes that look identical on a firmware: the alias is hidden and shown as its twin (fw11: 0 = 2, both dark).
+const LED_ALIAS = { "12+4/fw11": { 0: 2 } };
+const shownMode = (m) => LED_ALIAS[model()]?.[m] ?? m;
+const modeList = () => [0, 1, 2, 3, 4, 5].filter((m) => !(m in (LED_ALIAS[model()] ?? {})));
 // Modes that light each key with its own configured color (mode 3 radiates it to the neighbours).
 const PER_KEY_MODES = { "12+4/fw11": [1, 3] };
 const model = () => (S.snap ? `${S.snap.keys}+${S.snap.knobs}/fw${S.snap.firmware}` : "");
@@ -332,25 +344,42 @@ const showsKeyColors = (l) => l != null && (PER_KEY_MODES[model()] ?? [1]).inclu
 function renderLightMenu() {
   const body = $("light-body"), l = led(S.layer);
   $("light").hidden = !S.snap;
-  if (!l) { body.replaceChildren(el("p", { className: "hint", textContent: "Este modelo não informou luz." })); return; }
+  if (!l) { $("light-sum").replaceChildren("Iluminação"); body.replaceChildren(el("p", { className: "hint", textContent: "Este modelo não informou luz." })); return; }
   const pick = (next) => { $("light").open = false; setLed(S.layer, next); };
-  const modes = ledModes().map((name, m) => {
-    const b = el("button", { textContent: (l.mode === m ? "✓ " : "　") + name });
+  const names = ledModes();
+  $("light-sum").replaceChildren(swatch(shownMode(l.mode)), "Iluminação");
+  $("light-sum").title = `Camada ${S.layer}: ${names[shownMode(l.mode)]}`;
+  const modes = modeList().map((m) => {
+    const b = el("button", { className: "with-sw" }, el("span", { className: "check", textContent: shownMode(l.mode) === m ? "✓" : "" }), swatch(m), names[m]);
     b.onclick = () => pick({ ...l, mode: m });
     return b;
   });
   const off = el("button", { textContent: "　Apagar a cor de todas as teclas" });
   off.onclick = () => pick({ ...l, rgb: l.rgb.map(() => 0) });
-  body.replaceChildren(el("p", { className: "menu-title", textContent: `Luz da camada ${S.layer}` }), ...modes, el("hr"), off,
+  body.replaceChildren(el("p", { className: "menu-title", textContent: `Iluminação da camada ${S.layer}` }), ...modes, el("hr"), off,
     el("p", { className: "hint", textContent: "A cor de cada tecla é escolhida ao clicar na tecla." }));
 }
 
+const SWATCH = { "sem luz": "#0000", "cores por tecla": "linear-gradient(90deg,#ff453a,#ffd60a,#30d158,#0a84ff)",
+  "irradia para as teclas vizinhas": "radial-gradient(circle,#fff 0 25%,#0a84ff 60%,#0000 75%)",
+  "arco-íris": "linear-gradient(90deg,red,orange,yellow,lime,cyan,blue,magenta)", "ondas de cor": "linear-gradient(135deg,#ff2d55,#5856d6,#34c759,#ffcc00)" };
+const swatch = (m) => el("span", { className: "sw", style: `background:${SWATCH[(LED_MODE_NAMES[model()] ?? {})[m]] ?? "var(--ctrl)"}` });
 function ledLayerSection() {
   const l = led(S.layer);
   if (!l) return null;
-  return section(`Iluminação da camada ${S.layer}`,
-    seg(ledModes().map((name, m) => [m, name.replace(" — ", " · ")]), l.mode, (mode) => setLed(S.layer, { ...l, mode }), "modes"),
-    el("p", { className: "hint", textContent: "Também no botão Luz, lá em cima. A cor de cada tecla fica ao selecionar a tecla." }));
+  const known = LED_MODE_NAMES[model()] ?? {};
+  const list = el("div", { className: "modes-list" }, ...modeList().map((m) => {
+    const name = known[m];
+    const b = el("button", { title: `Modo ${m}` },
+      swatch(m),
+      el("span", { className: "nm", textContent: name ? name[0].toUpperCase() + name.slice(1).replace("irradia para as teclas vizinhas", "irradia para as vizinhas") : `Modo ${m}` }),
+      el("span", { className: "num", textContent: String(m) }));
+    b.setAttribute("aria-pressed", String(shownMode(l.mode) === m));
+    b.onclick = () => setLed(S.layer, { ...l, mode: m });
+    return b;
+  }));
+  return section(`Iluminação da camada ${S.layer}`, list,
+    el("p", { className: "hint", textContent: "A cor de cada tecla fica ao clicar na tecla." }));
 }
 
 function render() { renderToolbar(); renderBoard(); renderEditor(); }
