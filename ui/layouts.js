@@ -26,10 +26,11 @@ function measured12x4() {
     w: 800, h: 430,
     controls: [
       ...out,
-      knob(12, 0, 640, 335, 140), // big, bottom
-      knob(12, 1, 568, 72, 82),   // small, top-left (16-18)
-      knob(12, 2, 712, 72, 82),   // small, top-right (19-21)
-      knob(12, 3, 640, 200, 112), // medium, middle (22-24)
+      // a bit smaller than the vendor drawing, leaving ~30px around each knob for its turn pills
+      knob(12, 0, 640, 331, 124), // big, bottom
+      knob(12, 1, 568, 69, 76),   // small, top-left (16-18)
+      knob(12, 2, 712, 69, 76),   // small, top-right (19-21)
+      knob(12, 3, 640, 188, 100), // medium, middle (22-24)
     ],
   };
 }

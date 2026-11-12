@@ -135,10 +135,14 @@ function buildBoard() {
     n.setAttribute("role", "button");
     Object.assign(n.style, { left: `${c.x - c.size / 2}px`, top: `${c.y - c.size / 2}px`, width: `${c.size}px`, height: `${c.size}px` });
     n.innerHTML = c.knob
-      ? `<div class="cap"></div><div class="inner"><div class="label"></div><div class="code"></div></div>`
+      ? `<div class="cap"></div><div class="inner"><div class="label"></div></div><div class="turns"><button class="pill" data-part="0"></button><button class="pill" data-part="2"></button></div>`
       : `<div class="glow"></div><div class="inner"><div class="label"></div><div class="code"></div></div>`;
     const pick = () => { S.selected = c.knob ? c.id + PRESS : c.id; S.capture = null; render(); };
     n.addEventListener("click", pick);
+    // turn pills select that turn directly
+    n.querySelectorAll(".pill").forEach((p) => p.addEventListener("click", (e) => {
+      e.stopPropagation(); S.selected = c.id + Number(p.dataset.part); S.capture = null; render();
+    }));
     n.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
     board.append(n);
   }
@@ -166,9 +170,12 @@ function renderBoard() {
     const label = S.labels[key(S.layer, c.id)];
     const main = action(S.layer, c.knob ? c.id + PRESS : c.id);
     n.querySelector(".label").textContent = label || text(main);
-    n.querySelector(".code").textContent = c.knob
-      ? `↺ ${text(action(S.layer, c.id))}  ↻ ${text(action(S.layer, c.id + 2))}`
-      : label ? text(main) : "";
+    if (c.knob) {
+      const [ccw, cw] = n.querySelectorAll(".pill"), a0 = action(S.layer, c.id), a2 = action(S.layer, c.id + 2);
+      ccw.textContent = `↺ ${text(a0)}`; cw.textContent = `${text(a2)} ↻`;
+      ccw.classList.toggle("none", !a0 || a0.kind === "none"); cw.classList.toggle("none", !a2 || a2.kind === "none");
+      ccw.classList.toggle("on", S.selected === c.id); cw.classList.toggle("on", S.selected === c.id + 2);
+    } else n.querySelector(".code").textContent = label ? text(main) : "";
     n.classList.toggle("empty", !label && (!main || main.kind === "none"));
     n.classList.toggle("selected", ids.includes(S.selected));
     n.classList.toggle("edited", ids.some((i) => S.edits.has(key(S.layer, i))));

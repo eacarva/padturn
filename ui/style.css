@@ -145,8 +145,6 @@ main { flex: 1; display: flex; min-height: 0; }
 .ctl.knob.lit.pressed { transform: scale(.93); }
 .ctl.knob.lit.pressed .cap { box-shadow: inset 0 3px 8px rgba(0,0,0,.7), 0 1px 2px rgba(0,0,0,.5); }
 .ctl.knob .label { max-width: 80%; }
-.ctl.knob .code { font-size: 9.5px; max-width: 120px; }
-.ctl.knob.small .code { display: none; }
 .ctl.knob.small .label { font-size: 11px; max-width: 64px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .ctl.edited:not(.selected) { box-shadow: 0 0 0 2.5px var(--warn), 0 0 0 7px rgba(255,159,10,.18), 0 8px 14px -6px rgba(0,0,0,.5); }
@@ -245,3 +243,12 @@ input[type=color]::-webkit-color-swatch { border: 0; border-radius: 7px; box-sha
 .editor .head > div { flex: none; }
 .editor .head input { flex: 1; min-width: 0; }
 .sec > input + .row { margin-top: 8px; }
+/* knob turns: two pills under the knob, kept under it on screen whatever the board rotation */
+.ctl.knob .turns { position: absolute; inset: 0; pointer-events: none; transform: rotate(var(--counter)); transition: transform .65s var(--ease); }
+.ctl.knob .turns { display: flex; justify-content: center; align-items: flex-start; gap: 4px; padding-top: calc(100% + 6px); }
+.ctl .pill { pointer-events: auto; height: 20px; padding: 0 8px; border: 0; border-radius: 10px; max-width: 66px; flex: none;
+  font: 500 10.5px ui-monospace, "SF Mono", Menlo, Consolas, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: #2c2c2e; background: rgba(255,255,255,.62); box-shadow: 0 0 0 .5px rgba(0,0,0,.18); cursor: pointer; }
+.ctl .pill:hover { background: rgba(255,255,255,.85); }
+.ctl .pill.none { color: rgba(0,0,0,.35); }
+.ctl .pill.on { color: #fff; background: var(--accent); box-shadow: none; }
