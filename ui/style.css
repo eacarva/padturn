@@ -244,3 +244,4 @@ input[type=color]::-webkit-color-swatch { border: 0; border-radius: 7px; box-sha
 .editor .head { display: flex; align-items: flex-end; gap: 12px; }
 .editor .head > div { flex: none; }
 .editor .head input { flex: 1; min-width: 0; }
+.sec > input + .row { margin-top: 8px; }

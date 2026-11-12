@@ -37,6 +37,7 @@ const drafts = new Map();
 const action = (l, i) => S.edits.get(key(l, i)) ?? drafts.get(key(l, i)) ?? (raw(l, i) ? decode(raw(l, i)) : null);
 const ctlOf = (i) => S.layout.controls.find((c) => c.id === i || (c.knob && i >= c.id && i <= c.id + 2));
 const led = (l) => S.ledEdits.get(l) ?? S.snap?.leds?.[l - 1] ?? null;
+const layerName = (l) => S.labels[`layer-${l}`] || `Camada ${l}`;
 const pending = () => S.edits.size + S.ledEdits.size;
 const hex = (b) => b.map((x) => x.toString(16).padStart(2, "0")).join(" ");
 const rgbHex = (rgb, k) => "#" + rgb.slice(k * 3, k * 3 + 3).map((x) => x.toString(16).padStart(2, "0")).join("");
@@ -96,16 +97,16 @@ async function exportBackup() {
   if (!S.snap) return;
   const layers = Object.fromEntries(S.snap.layers.map((rows, l) => [String(l + 1), rows.map(hex)]));
   const leds = Object.fromEntries(S.snap.leds.map((d, l) => [String(l + 1), d]).filter(([, d]) => d));
-  try { if (await invoke("save_backup", { json: JSON.stringify({ layers, leds }, null, 1) })) status("Backup salvo."); }
+  try { if (await invoke("save_backup", { json: JSON.stringify({ layers, leds, labels: S.labels }, null, 1) })) status("Backup salvo."); }
   catch (e) { status(String(e)); }
 }
 
 async function restoreBackup() {
-  let entries, leds;
+  let entries, leds, j;
   try {
     const txt = await invoke("open_backup");
     if (!txt) return;
-    const j = JSON.parse(txt);
+    j = JSON.parse(txt);
     // accepts exported backups and the automatic ones (raw snapshot)
     const rows = Array.isArray(j.layers) ? j.layers.flat() : Object.values(j.layers).flat().map((s) => s.split(" ").map((h) => parseInt(h, 16)));
     entries = rows;
@@ -115,6 +116,7 @@ async function restoreBackup() {
     if (!ok) throw new Error("Arquivo de backup inválido.");
   } catch (e) { return status(String(e)); }
   if (!(await confirmSheet("Restaurar este backup?", "Tudo o que está no teclado agora será substituído. Antes, o Padturn salva uma cópia automática do estado atual.", "Restaurar"))) return;
+  if (j.labels && typeof j.labels === "object") { S.labels = { ...S.labels, ...j.labels }; persist("labels", S.labels); }
   run("Restaurando backup…", () => invoke("write_entries", { entries, leds }), "Backup restaurado");
 }
 
@@ -181,7 +183,10 @@ function renderBoard() {
 
 function renderToolbar() {
   renderLightMenu();
-  document.querySelectorAll("#layers button").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.layer) === S.layer)));
+  document.querySelectorAll("#layers button").forEach((b) => {
+    b.setAttribute("aria-pressed", String(Number(b.dataset.layer) === S.layer));
+    b.textContent = layerName(Number(b.dataset.layer));
+  });
   const on = document.querySelector(`#layers button[data-layer="${S.layer}"]`);
   $("layers").style.setProperty("--x", `${on.offsetLeft}px`); $("layers").style.setProperty("--w", `${on.offsetWidth}px`);
   const n = pending();
@@ -231,7 +236,7 @@ function renderEditor() {
   });
   // Title and drawing name share one row: the name is a Padturn-only label, the title says what is selected.
   ed.prepend(el("header", { className: "head" },
-    el("div", {}, el("div", { className: "eyebrow", textContent: `Camada ${S.layer}` }),
+    el("div", {}, el("div", { className: "eyebrow", textContent: layerName(S.layer) }),
       el("h2", { textContent: c.knob ? `Knob ${c.knob}` : `Tecla ${c.id}` })), lab));
 
   if (a.kind === "other") {
@@ -441,7 +446,14 @@ function layerActions() {
     if (acts.length < layerIds().length) return status("Não sobraram teclas livres para sortear.");
     applyLayer(acts);
   };
-  return section(`Camada ${l}`, el("div", { className: "row" }, clear, dice));
+  const name = el("input", { type: "text", value: S.labels[`layer-${l}`] ?? "", placeholder: `Nome da camada ${l}`, maxLength: 24,
+    title: "Só aparece aqui no Padturn e nos backups, não vai para o teclado" });
+  name.addEventListener("input", () => {
+    const v = name.value.trim();
+    v ? (S.labels[`layer-${l}`] = v) : delete S.labels[`layer-${l}`];
+    persist("labels", S.labels); renderToolbar();
+  });
+  return section(`Camada ${l}`, name, el("div", { className: "row" }, clear, dice));
 }
 
 function render() { renderToolbar(); renderBoard(); renderEditor(); }

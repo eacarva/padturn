@@ -98,6 +98,13 @@ No painel da direita, quando nada está selecionado. Ali já fica a "Iluminaçã
 - Só criam alterações pendentes, como qualquer edição. Nada vai para o teclado até clicar em Gravar.
 - "Descartar alterações" desfaz.
 
+## Nomes (teclas e camadas)
+
+- O teclado não guarda nomes. Os nomes das teclas (`1-5`) e das camadas (`layer-1`) ficam no `localStorage` do Padturn, neste computador.
+- Eles sobrevivem a fechar e abrir o app.
+- "Exportar backup" inclui os nomes (`labels`), e "Restaurar backup" traz de volta. É assim que se leva os nomes para outro computador.
+- Restaurar também regrava o teclado, depois de confirmar.
+
 ## Regras do usuário
 
 - Nunca gravar no teclado sem backup funcionando e sem autorização.
