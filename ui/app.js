@@ -1,6 +1,6 @@
 import { MODS, MEDIA, MOUSE, MACRO_MAX, MACRO_DELAY, keyName, stepName, decode, encode, same, text, codeToUsage, modOfCode } from "./model.js";
 import { layoutFor, ledIndex } from "./layouts.js";
-import { emitted, PALETTE } from "./led.js";
+import { emitted, hsvToRgb, rgbToHsv, BASICS } from "./led.js";
 
 const invoke = window.__TAURI__?.core?.invoke ?? (async () => { throw new Error("Abra pelo app Padturn."); });
 const $ = (id) => document.getElementById(id);
@@ -220,18 +220,19 @@ function renderEditor() {
     el("p", { textContent: "Escolha uma tecla ou knob no desenho." })), ledLayerSection());
 
   const c = ctlOf(i), a = action(S.layer, i);
-  ed.append(el("header", { className: "head" },
-    el("div", { className: "eyebrow", textContent: `Camada ${S.layer}` }),
-    el("h2", { textContent: c.knob ? `Knob ${c.knob}` : `Tecla ${c.id}` })));
 
   if (c.knob) ed.append(seg(PARTS.map(([sym, name], k) => [c.id + k, `${sym} ${name}`]), i, (k) => { S.selected = k; S.capture = null; render(); }, "parts"));
 
-  const lab = el("input", { type: "text", value: S.labels[key(S.layer, c.id)] ?? "", placeholder: "Ex.: CONTRASTE" });
+  const lab = el("input", { type: "text", value: S.labels[key(S.layer, c.id)] ?? "", placeholder: "Nome no desenho",
+    title: "Só aparece aqui no Padturn, não vai para o teclado" });
   lab.addEventListener("input", () => {
     lab.value ? (S.labels[key(S.layer, c.id)] = lab.value) : delete S.labels[key(S.layer, c.id)];
     persist("labels", S.labels); renderBoard();
   });
-  ed.append(section("Nome no desenho", lab, el("p", { className: "hint", textContent: "Só aparece aqui no Padturn." })));
+  // Title and drawing name share one row: the name is a Padturn-only label, the title says what is selected.
+  ed.prepend(el("header", { className: "head" },
+    el("div", {}, el("div", { className: "eyebrow", textContent: `Camada ${S.layer}` }),
+      el("h2", { textContent: c.knob ? `Knob ${c.knob}` : `Tecla ${c.id}` })), lab));
 
   if (a.kind === "other") {
     ed.append(section("Ação", el("p", { className: "hint", textContent: `${a.what}: mantido como está.` })));
@@ -242,7 +243,6 @@ function renderEditor() {
     ed.append(section("Ação", seg(kinds, a.kind, (k) => { S.capture = k === "keys" ? "key" : null; if (k !== a.kind) setAction(fresh[k]); else render(); }, "kinds"), editorFor(a)));
   }
 
-  ed.append(el("div", { className: "sends" }, el("span", { textContent: "Envia" }), el("b", { textContent: text(a) })));
   if (S.edits.has(key(S.layer, i))) ed.append(el("p", { className: "hint warn", textContent: "Alterado. Clique em Gravar para mandar ao teclado." }));
   if (!c.knob) ed.append(ledKeySection(c));
 }
@@ -257,7 +257,7 @@ function editorFor(a) {
     const mods = seg(MODS.map((m) => [m.bit, `${m.sym} ${m.name}`]), -1, (bit) => setAction({ ...a, mods: a.mods ^ bit }), "mods");
     mods.querySelectorAll("button").forEach((b, k) => b.setAttribute("aria-pressed", String(!!(a.mods & MODS[k].bit))));
     const vk = el("button", { className: "link", textContent: "Escolher no teclado virtual…" });
-    vk.onclick = () => { S.capture = null; openVirtual(a.key, (k) => setAction({ ...a, key: k })); };
+    vk.onclick = () => { S.capture = null; openVirtual(a.key, (k, mods) => setAction({ ...a, key: k, mods }), false, a.mods); };
     return el("div", { className: "stack" }, big, mods, vk,
       el("p", { className: "hint", textContent: "Atalhos que o sistema intercepta (⌘Q, ⌘Tab…) só pelo teclado virtual." }));
   }
@@ -305,28 +305,53 @@ function ledKeySection(c) {
   const l = led(S.layer), li = ledIndex(c);
   if (!l || li === null) return null;
   const cur = l.rgb.slice(li * 3, li * 3 + 3);
-  const put = (rgb, keys) => {
-    const next = l.rgb.slice();
-    for (const k of keys) next.splice(k * 3, 3, ...rgb);
-    setLed(S.layer, { ...l, rgb: next });
-  };
-  // Swatches show what the LED really emits, not the raw bytes (see led.js).
-  const grid = el("div", { className: "led-palette" }, ...PALETTE.map((p) => {
-    const look = emitted(p.send);
-    const b = el("button", { title: p.name, className: look ? "" : "off", style: look ? `--c:${look}` : "" });
-    b.setAttribute("aria-pressed", String(cur.join() === p.send.join()));
-    b.onclick = () => put(p.send, [li]);
+  const withColor = (rgb, keys) => { const next = l.rgb.slice(); for (const k of keys) next.splice(k * 3, 3, ...rgb); return { ...l, rgb: next }; };
+  const put = (rgb, keys = [li]) => setLed(S.layer, withColor(rgb, keys));
+  // While dragging only the board and toolbar redraw, so the dial under the pointer is not rebuilt.
+  const live = (rgb) => { S.ledEdits.set(S.layer, withColor(rgb, [li])); renderBoard(); renderToolbar(); };
+
+  const basics = el("div", { className: "led-basics" }, ...BASICS.map(([name, rgb]) => {
+    const look = emitted(rgb);
+    const b = el("button", { title: name, className: look ? "" : "off", style: look ? `--c:${look}` : "" });
+    b.setAttribute("aria-pressed", String(cur.join() === rgb.join()));
+    b.onclick = () => put(rgb);
     return b;
   }));
-  const other = el("input", { type: "color", value: rgbHex(l.rgb, li), title: "Seletor do Mac: as cores dele vêm convertidas e podem sair diferentes no LED" });
-  other.oninput = () => { const v = other.value; put([1, 3, 5].map((i) => parseInt(v.slice(i, i + 2), 16)), [li]); };
+
+  let [h, sat, val] = rgbToHsv(cur);
+  if (!cur.some((x) => x)) [h, sat, val] = [0, 1, 1];
+  const rgbNow = () => hsvToRgb(h, sat, val);
+  const knob = el("span", { className: "dial-knob" }), dot = el("span", { className: "dial-dot" });
+  const dial = el("div", { className: "dial", title: "Arraste para escolher o tom" }, el("span", { className: "dial-hole" }, dot), knob);
+  const white = el("input", { type: "range", min: 0, max: 100, value: Math.round((1 - sat) * 100) });
+  const bright = el("input", { type: "range", min: 10, max: 100, value: Math.round(val * 100) });
+  const paint = () => {
+    knob.style.transform = `rotate(${h}deg)`;
+    const look = emitted(rgbNow()) ?? "transparent";
+    dot.style.background = look; dot.style.boxShadow = `0 0 18px 2px ${look}`;
+    white.style.setProperty("--to", hsvToRgb(h, 1, 1).join(","));
+  };
+  const hueAt = (e) => { const r = dial.getBoundingClientRect(); return (Math.atan2(e.clientX - r.left - r.width / 2, -(e.clientY - r.top - r.height / 2)) * 180 / Math.PI + 360) % 360; };
+  dial.onpointerdown = (e) => {
+    dial.setPointerCapture(e.pointerId);
+    const move = (ev) => { h = hueAt(ev); paint(); live(rgbNow()); };
+    move(e);
+    dial.onpointermove = move;
+    dial.onpointerup = () => { dial.onpointermove = null; put(rgbNow()); };
+  };
+  white.oninput = () => { sat = 1 - white.value / 100; paint(); live(rgbNow()); };
+  bright.oninput = () => { val = bright.value / 100; paint(); live(rgbNow()); };
+  white.onchange = bright.onchange = () => put(rgbNow());
+  paint();
+
   const all = el("button", { className: "link", textContent: "Usar esta cor em todas as teclas" });
   all.onclick = () => put(cur, S.layout.controls.filter((k) => !k.knob).map((k) => k.id - 1));
-  const look = emitted(cur);
-  return section("Luz da tecla", grid,
-    el("div", { className: "row" }, el("label", { className: "other" }, other, "Outra cor…"), all),
-    el("p", { className: "hint", textContent: (look ? "Cores da paleta do fabricante. O seletor do Mac pode desviar a cor (o vermelho dele vira laranja)." : "Tecla apagada.") +
-      (showsKeyColors(l) ? "" : ` A camada está no ${ledModes()[shownMode(l.mode)]}: a cor por tecla não aparece nesse modo.`) }));
+  return section("Luz da tecla", basics,
+    el("div", { className: "dial-row" }, dial, el("div", { className: "dial-sliders" },
+      el("label", {}, "Branco", white), el("label", {}, "Brilho", bright),
+      el("code", { className: "dial-hex", textContent: cur.some((x) => x) ? rgbHex(l.rgb, li) : "apagada" }))),
+    all,
+    showsKeyColors(l) ? null : el("p", { className: "hint", textContent: `A camada está no ${ledModes()[shownMode(l.mode)]}: a cor por tecla não aparece nesse modo.` }));
 }
 
 // The vendor app only labels them "LED Mode0..5": the effect lives in each keyboard's firmware, so names are
@@ -419,26 +444,39 @@ function range(start, n) { return Array.from({ length: n }, (_, i) => start + i)
 const VK_SHORT = { 0x46: "PrtSc", 0x47: "ScrLk", 0x48: "Pause", 0x4b: "PgUp", 0x4e: "PgDn", 0x49: "Ins", 0x4c: "Del", 0x53: "Num" };
 const MOD_CODE = { 0xf1: 1, 0xf2: 2, 0xf3: 4, 0xf4: 8, 0xf5: 16, 0xf6: 32, 0xf7: 64, 0xf8: 128 };
 
-function openVirtual(current, onPick, withMods = false) {
+// Key mode: modifiers toggle inside the sheet and the main key closes it, onPick(key, mods).
+// Macro mode (withMods): every button, modifiers included, is one step, onPick(code).
+function openVirtual(current, onPick, withMods = false, mods0 = 0) {
   const dlg = el("dialog", { className: "sheet vk" });
   const close = () => dlg.close();
+  let mods = mods0;
+  const modButtons = [];
+  const only = withMods ? null : el("button", { className: "primary" });
+  const sync = () => {
+    for (const [b, bit] of modButtons) b.setAttribute("aria-pressed", String(!!(mods & bit)));
+    if (only) { only.disabled = !mods; only.textContent = mods ? `Usar só ${MODS.filter((m) => mods & m.bit).map((m) => m.sym).join("")}` : "Usar só modificadores"; }
+  };
   const block = (rows, cls) => el("div", { className: "vk-block " + cls }, ...rows.map((row) => el("div", { className: "vk-row" }, ...row.map(([u, w]) => {
     if (!u) return el("span", { className: "gap", style: `--w:${w}` });
-    const isMod = !!MOD_CODE[u];
-    const b = el("button", { textContent: isMod ? stepName(u) : VK_SHORT[u] ?? keyName(u).replace(/^Num /, ""), title: `${keyName(u)} · 0x${u.toString(16)}`, style: `--w:${w}` });
+    const bit = MOD_CODE[u];
+    const b = el("button", { textContent: bit ? stepName(u) : VK_SHORT[u] ?? keyName(u).replace(/^Num /, ""), title: `${keyName(u)} · 0x${u.toString(16)}`, style: `--w:${w}` });
     if (u >= 0x53 && u <= 0x63) b.classList.add("pad");
-    b.disabled = isMod && !withMods;
-    b.setAttribute("aria-pressed", String(current === u));
-    b.onclick = () => { close(); onPick(u); };
+    if (bit && !withMods) {
+      b.classList.add("mod"); modButtons.push([b, bit]);
+      b.onclick = () => { mods ^= bit; sync(); };
+    } else {
+      b.setAttribute("aria-pressed", String(current === u));
+      b.onclick = () => { close(); withMods ? onPick(u) : onPick(u, mods); };
+    }
     return b;
   }))));
   dlg.append(el("h2", { textContent: "Escolher tecla" }),
-    el("p", { className: "hint", textContent: withMods ? "Clique na tecla do passo." : "Clique na tecla. Os modificadores (⌃ ⌥ ⇧ ⌘) ficam nos botões do painel." }),
+    el("p", { className: "hint", textContent: withMods ? "Clique na tecla do passo." : "Marque os modificadores (⌃ ⇧ ⌥ ⌘) e clique na tecla principal." }),
     el("div", { className: "vk-wrap" }, block(VK_MAIN, "main"), block(VK_SIDE, "side"), block(VK_PAD, "numpad")));
   const cancel = el("button", { textContent: "Cancelar" }); cancel.onclick = close;
-  const none = withMods ? null : el("button", { textContent: "Só modificadores" });
-  if (none) none.onclick = () => { close(); onPick(0); };
-  dlg.append(el("div", { className: "foot" }, none, cancel));
+  if (only) only.onclick = () => { close(); onPick(0, mods); };
+  dlg.append(el("div", { className: "foot" }, cancel, only));
+  sync();
   dlg.addEventListener("close", () => setTimeout(() => dlg.remove(), 200));
   document.body.append(dlg); dlg.showModal();
 }
