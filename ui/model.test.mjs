@@ -42,3 +42,16 @@ assert.deepEqual(decode([3, 0xfa, 1, 1, ...rk.slice(4)]), { kind: "keys", mods: 
 assert.equal(modOfCode("MetaRight"), 128);
 assert.match(text(decode([3, 0xfa, 1, 1, ...encode({ kind: "keys", mods: 128, key: 0 }, digit).slice(4)])), /R⌘/);
 console.log("model ok");
+
+// drawKeys: distinct, skips used combos, plain F13–F24 first
+{
+  const { drawKeys } = await import("./model.js");
+  const used = new Set(["0-104"]);  // F13 already used in another layer
+  const d = drawKeys(24, used);
+  const ids = d.map((a) => `${a.mods}-${a.key}`);
+  assert.equal(new Set(ids).size, 24);
+  assert.ok(!ids.includes("0-104"));
+  assert.equal(d.filter((a) => !a.mods).length, 11);
+  assert.equal(drawKeys(200).length, 96);
+  console.log("drawKeys ok");
+}

@@ -74,7 +74,7 @@ open src-tauri/target/release/bundle/macos/Padturn.app
   - O seletor do Mac grava cores convertidas (o "vermelho" dele é `ff2600`, que sai laranja). Por isso ficou só como "Outra cor…".
   - Os backups automáticos guardam o valor exato de cada teste de cor do usuário.
 
-## Próximo: ações da camada (decidido em 2026-11-12, implementando)
+## Ações da camada (feito em 2026-11-12; falta conferir na tela)
 
 ### Onde ficam
 

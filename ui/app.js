@@ -1,4 +1,4 @@
-import { MODS, MEDIA, MOUSE, MACRO_MAX, MACRO_DELAY, keyName, stepName, decode, encode, same, text, codeToUsage, modOfCode } from "./model.js";
+import { MODS, MEDIA, MOUSE, MACRO_MAX, MACRO_DELAY, keyName, stepName, decode, encode, same, text, codeToUsage, modOfCode, drawKeys } from "./model.js";
 import { layoutFor, ledIndex } from "./layouts.js";
 import { emitted, hsvToRgb, rgbToHsv, BASICS } from "./led.js";
 
@@ -41,14 +41,14 @@ const pending = () => S.edits.size + S.ledEdits.size;
 const hex = (b) => b.map((x) => x.toString(16).padStart(2, "0")).join(" ");
 const rgbHex = (rgb, k) => "#" + rgb.slice(k * 3, k * 3 + 3).map((x) => x.toString(16).padStart(2, "0")).join("");
 
-function setAction(a) {
-  const l = S.layer, i = S.selected, orig = decode(raw(l, i));
+function setAction(a) { setAt(S.layer, S.selected, a); render(); }
+function setAt(l, i, a) {
+  const orig = decode(raw(l, i));
   const norm = (x) => (x.kind === "keys" && !x.key && !x.mods) || (x.kind === "macro" && !x.steps.length) ? { kind: "none" } : x;
   const k = key(l, i);
   drafts.delete(k);
   if (!same(norm(a), norm(orig))) S.edits.set(k, a);
   else { S.edits.delete(k); if (!same(a, orig)) drafts.set(k, a); }
-  render();
 }
 function setLed(l, next) {
   same(next, S.snap.leds[l - 1]) ? S.ledEdits.delete(l) : S.ledEdits.set(l, next);
@@ -217,7 +217,7 @@ function renderEditor() {
   if (!S.snap) return ed.append(el("div", { className: "empty-state" }, el("div", { className: "big", textContent: "⌨︎" }),
     el("p", { textContent: "Conecte o teclado pelo cabo USB e clique em Ler." })));
   if (!i) return ed.append(el("div", { className: "empty-state" }, el("div", { className: "big", textContent: "↖︎" }),
-    el("p", { textContent: "Escolha uma tecla ou knob no desenho." })), ledLayerSection());
+    el("p", { textContent: "Escolha uma tecla ou knob no desenho." })), layerActions(), ledLayerSection());
 
   const c = ctlOf(i), a = action(S.layer, i);
 
@@ -415,6 +415,33 @@ function ledLayerSection() {
   }));
   return section(`Iluminação da camada ${S.layer}`, list,
     el("p", { className: "hint", textContent: "A cor de cada tecla fica ao clicar na tecla." }));
+}
+
+// Whole-layer actions: only pending edits, so Gravar (with its auto-backup) and Descartar still apply.
+const layerIds = () => Array.from({ length: S.snap.keys + 3 * S.snap.knobs }, (_, k) => k + 1);
+function applyLayer(acts) {
+  layerIds().forEach((i, k) => setAt(S.layer, i, acts[k]));
+  render();
+  flash(S.layout.controls.map((c) => (c.knob ? c.id + PRESS : c.id)));
+}
+function layerActions() {
+  const l = S.layer;
+  const clear = el("button", { textContent: "Limpar camada", title: `Deixa todas as teclas e knobs da camada ${l} sem ação` });
+  clear.onclick = async () => {
+    if (await confirmSheet(`Limpar a camada ${l}?`, "Todas as teclas e knobs ficam em \"Nada\". Nada vai para o teclado até você clicar em Gravar.", "Limpar"))
+      applyLayer(layerIds().map(() => ({ kind: "none" })));
+  };
+  const dice = el("button", { textContent: "🎲 Sortear teclas", title: "Uma tecla diferente para cada controle, ao acaso" });
+  dice.onclick = async () => {
+    if (!(await confirmSheet(`Sortear a camada ${l}?`, "Cada tecla e cada giro/aperto de knob recebe uma tecla diferente (F13–F24, depois com ⌃⌥⇧), sem repetir as das outras camadas. Nada vai para o teclado até você clicar em Gravar.", "Sortear"))) return;
+    const used = new Set();
+    for (let o = 1; o <= S.snap.layers.length; o++) if (o !== l)
+      for (const i of layerIds()) { const a = action(o, i); if (a?.kind === "keys" && a.key) used.add(`${a.mods}-${a.key}`); }
+    const acts = drawKeys(layerIds().length, used);
+    if (acts.length < layerIds().length) return status("Não sobraram teclas livres para sortear.");
+    applyLayer(acts);
+  };
+  return section(`Camada ${l}`, el("div", { className: "row" }, clear, dice));
 }
 
 function render() { renderToolbar(); renderBoard(); renderEditor(); }

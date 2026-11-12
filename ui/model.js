@@ -151,3 +151,17 @@ export function codeToUsage(code) {
 
 export const modOfCode = (code) =>
   ({ ControlLeft: 1, ControlRight: 16, ShiftLeft: 2, ShiftRight: 32, AltLeft: 4, AltRight: 64, MetaLeft: 8, MetaRight: 128 })[code] ?? 0;
+
+/** n distinct random key actions for a whole layer. F13–F24 alone first, then with ⌃/⌥/⇧ combos.
+ * used: Set of "mods-key" already taken elsewhere (other layers), so the remapper never sees a clash. */
+export function drawKeys(n, used = new Set(), rand = Math.random) {
+  const out = [];
+  for (const mods of [0, 1, 4, 2, 5, 3, 6, 7]) {  // none, ⌃, ⌥, ⇧, ⌃⌥, ⌃⇧, ⌥⇧, ⌃⌥⇧
+    const tier = [];
+    for (let k = 0x68; k <= 0x73; k++) if (!used.has(`${mods}-${k}`)) tier.push({ kind: "keys", mods, key: k });
+    for (let j = tier.length - 1; j > 0; j--) { const r = Math.floor(rand() * (j + 1)); [tier[j], tier[r]] = [tier[r], tier[j]]; }
+    out.push(...tier);
+    if (out.length >= n) break;
+  }
+  return out.slice(0, n);
+}
