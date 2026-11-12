@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Padturn</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="toolbar" data-tauri-drag-region>
+    <div class="seg" id="layers" role="radiogroup" aria-label="Camada">
+      <button data-layer="1" aria-pressed="true">Camada 1</button>
+      <button data-layer="2">Camada 2</button>
+      <button data-layer="3">Camada 3</button>
+    </div>
+    <button id="rotate" class="tool" title="Girar o desenho 90° para ficar igual ao teclado na sua mesa" aria-label="Girar desenho">
+      <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><path d="M15.5 9.5a5.5 5.5 0 1 1-1.6-3.9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M14.4 2.6v3.6h-3.6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <span class="spacer" data-tauri-drag-region></span>
+    <button id="read">Ler</button>
+    <details class="menu" id="backup">
+      <summary aria-label="Backup">Backup</summary>
+      <div class="menu-body">
+        <button id="export">Exportar backup…</button>
+        <button id="restore">Restaurar backup…</button>
+        <hr>
+        <button id="discard">Descartar alterações</button>
+      </div>
+    </details>
+    <button id="save" class="primary" disabled>Gravar</button>
+  </header>
+
+  <main>
+    <section class="stage" id="stage">
+      <div class="board" id="board"></div>
+    </section>
+    <aside class="editor" id="editor"></aside>
+  </main>
+
+  <footer class="status"><span id="spinner" class="spinner" hidden></span><span id="status">Conecte o teclado pelo cabo USB.</span>
+    <span class="hint">Com a janela em foco, aperte uma tecla do teclado: ela acende no desenho.</span></footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

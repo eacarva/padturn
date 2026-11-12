@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><defs>
+  <linearGradient id="body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b3039"/><stop offset="1" stop-color="#15181d"/></linearGradient>
+  <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".18"/><stop offset=".5" stop-color="#ffffff" stop-opacity="0"/></linearGradient>
+  <linearGradient id="capSkirt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9dee5"/><stop offset="1" stop-color="#9aa3af"/></linearGradient>
+  <radialGradient id="capTop" cx=".5" cy=".35" r=".75"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e3e7ec"/></radialGradient>
+  <radialGradient id="metalL" cx=".4" cy=".3" r=".85"><stop offset="0" stop-color="#9aa2ae"/><stop offset=".55" stop-color="#5d6470"/><stop offset="1" stop-color="#2e333a"/></radialGradient>
+  <radialGradient id="metal" cx=".4" cy=".3" r=".8"><stop offset="0" stop-color="#6b7380"/><stop offset=".6" stop-color="#3a4049"/><stop offset="1" stop-color="#22262c"/></radialGradient>
+  <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6aa3ff"/><stop offset="1" stop-color="#2f6fe8"/></linearGradient>
+  <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur in="SourceAlpha" stdDeviation="14"/><feOffset dy="14" result="b"/><feComponentTransfer><feFuncA type="linear" slope=".55"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="10" result="g"/><feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<rect x="100" y="100" width="824" height="824" rx="185" fill="url(#body)"/>
+<rect x="100" y="100" width="824" height="824" rx="185" fill="none" stroke="url(#rim)" stroke-width="6"/><g filter="url(#shadow)"><rect x="212" y="222" width="600" height="600" rx="140" fill="url(#capSkirt)"/><rect x="262" y="230" width="500" height="500" rx="110" fill="url(#capTop)"/></g>
+<circle cx="512" cy="480" r="200" fill="none" stroke="#d3d8df" stroke-width="26" stroke-dasharray="942 314" stroke-linecap="round" transform="rotate(135 512 480)"/>
+<circle cx="512" cy="480" r="200" fill="none" stroke="#4d8dff" stroke-width="26" stroke-dasharray="560 900" stroke-linecap="round" transform="rotate(135 512 480)"/>
+<g filter="url(#shadow)"><circle cx="512" cy="480" r="140" fill="url(#metal)"/></g>
+<line x1="512" y1="480" x2="590" y2="402" stroke="#eef2f7" stroke-width="26" stroke-linecap="round"/></svg>

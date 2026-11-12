@@ -1,0 +1,11 @@
+{
+  "name": "padturn",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "test": "node ui/model.test.mjs"
+  },
+  "devDependencies": { "@tauri-apps/cli": "^2" }
+}
