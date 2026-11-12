@@ -438,7 +438,7 @@ function layerActions() {
   };
   const dice = el("button", { textContent: "🎲 Sortear teclas", title: "Uma tecla diferente para cada controle, ao acaso" });
   dice.onclick = async () => {
-    if (!(await confirmSheet(`Sortear a camada ${l}?`, "Cada tecla e cada giro/aperto de knob recebe uma tecla diferente (F13–F24, depois com ⌃⌥⇧), sem repetir as das outras camadas. Nada vai para o teclado até você clicar em Gravar.", "Sortear"))) return;
+    if (!(await confirmSheet(`Sortear a camada ${l}?`, "Cada tecla e cada giro/aperto de knob recebe uma letra ou número diferente, sem repetir nenhuma tecla já usada no teclado (outras camadas). Se acabarem, usa combinações com ⌃⌥⇧. Nada vai para o teclado até você clicar em Gravar.", "Sortear"))) return;
     const used = new Set();
     for (let o = 1; o <= S.snap.layers.length; o++) if (o !== l)
       for (const i of layerIds()) { const a = action(o, i); if (a?.kind === "keys" && a.key) used.add(`${a.mods}-${a.key}`); }

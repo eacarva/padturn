@@ -87,8 +87,8 @@ No painel da direita, quando nada está selecionado. Ali já fica a "Iluminaçã
 - **🎲 Sortear teclas**
   - Dá a cada entrada da camada uma tecla diferente, ao acaso e sem repetição.
   - A ordem das teclas usadas no sorteio:
-    1. F13–F24, que não atrapalham nada e são ideais para o remapeador do Lightroom.
-    2. Depois, as mesmas com ⌃, ⌥, ⇧ e combinações desses.
+    1. Letras a–z e números 0–9 (36 teclas), pedido do usuário.
+    2. Se acabarem (3 camadas × 24 = 72), as mesmas com ⌃, ⌥, ⇧ e combinações desses.
   - Pula combinações já usadas nas outras camadas, para não haver conflito no remapeador.
   - Para 12 teclas + 4 knobs são 24 entradas.
 
