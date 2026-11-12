@@ -318,7 +318,7 @@ function ledKeySection(c) {
 // The vendor app only labels them "LED Mode0..5": the effect lives in each keyboard's firmware, so names are
 // kept per model + firmware ("keys+knobs/fw"). Unknown keyboards get plain "Modo N".
 // 12+4/fw11 names come from the user's keyboard (mode 1 shows per-key colors, mode 2 stays dark).
-const LED_MODE_NAMES = { "12+4/fw11": { 1: "cores por tecla", 2: "sem luz" } };
+const LED_MODE_NAMES = { "12+4/fw11": { 0: "apagado", 1: "cores por tecla", 2: "sem luz", 3: "irradia para as teclas vizinhas", 4: "arco-íris" } };
 const PER_KEY_MODE = 1;
 const ledModes = () => {
   const known = S.snap ? LED_MODE_NAMES[`${S.snap.keys}+${S.snap.knobs}/fw${S.snap.firmware}`] ?? {} : {};
