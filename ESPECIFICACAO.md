@@ -105,3 +105,45 @@ O usuário usa o teclado girado 180°.
 - macOS: `npx tauri build --bundles app`.
 - Windows: o código Rust compila para `x86_64-pc-windows-msvc` (checado daqui com `cargo check`). No Windows a hidapi usa o backend Rust puro (`windows-native`), sem precisar compilar C. O instalador (.exe/NSIS) precisa ser gerado numa máquina Windows ou num CI.
 - Testes: `node ui/model.test.mjs` e `node ui/layouts.test.mjs`.
+
+## Outros modelos e dialetos (pesquisa no GitHub, 2026-11-12)
+
+A fonte principal é `jvspier/macropad-rebind`, arquivo `docs/PROTOCOL.md` (licença MIT). Ele compila o `kriomant/ch57x-keyboard-tool` e testes em aparelhos reais.
+
+### Fabricante e IDs
+
+- `0x1189` e `0x514C` são do mesmo fabricante. Lido como little-endian, `0x514C` dá "LQ", de LQKJ, o nome no bundle do MINI_KEYBOARD.
+- Product IDs conhecidos: `8830`–`8833`, `8840`, `8842`, `8850`, `8851`, `8890`.
+- Um dongle sem fio aparece como `514c:4155` (`YieumYoon/open-mini-keyboard-configurator`).
+- O mesmo ID nem sempre quer dizer o mesmo protocolo. Por exemplo, `1189:8850` e `514c:8850` são diferentes. Identifique o dialeto pela resposta do teclado, não só pelo ID.
+
+### Dialetos
+
+| Dialeto | Aparelhos | Escrita | Leitura e luz |
+|---|---|---|---|
+| ch57x-1 | `1189:8840/8842/8850/8851`, `514c:8851`, alguns `514c:8850` 12+4 | `FE` + registro, depois `AA AA` / `FD FE FF` / `AA AA` | `FB` identifica, `FA 0F 03 camada` lê; luz `FE B0` |
+| ch57x-3 | `514c:8850` 4x4 | `FD id camada+1 tipo …`; modificadores como entradas `F1`–`F8`; `FD FE FF` depois de cada uma | sem leitura e sem luz conhecidas (não testado) |
+| ch57x-2 | `1189:8890` | byte de comando por tecla (`[ação,1,1,…]`), `AA AA` grava | `A1 camada` **troca a camada ativa** |
+| lctech | `1189:8890` "LCKEY" (3 teclas + LCD) | relatório de 12 bytes sem report id, interface `mi_01` | sem leitura |
+
+### Onde o teclado do usuário se encaixa
+
+O teclado do usuário é `514C`, 12+4, firmware 11. Ele é **um híbrido não descrito em nenhum projeto**:
+- escreve como o ch57x-3: `FD idx camada`, modificadores `F1`–`F8`;
+- mas responde `FB`, lê com `FA` e controla a luz com `FA/FE B0`.
+
+Tudo isso foi conferido no hardware pelo Padturn. Vale publicar como contribuição para o `macropad-rebind`.
+
+### Riscos para o Padturn
+
+- **`0x1189` está em `VENDORS` no `hid.rs`, mas esses aparelhos falam ch57x-1.**
+  - Lá `FD` é commit e a escrita é `FE`.
+  - O macropad-rebind relata que mandar o dialeto errado "é aceito sem erro e não faz nada".
+  - Antes de gravar, o Padturn precisa detectar o dialeto ou se recusar a gravar.
+- **`03 FC FC teclas knobs`** declara a variante de hardware. O firmware aceita 15 pares, e um par errado desliga teclas: parece hardware quebrado. Nunca enviar.
+- **`EF`** entra no bootloader e não tem volta. Nunca enviar.
+
+### Ideias para outros modelos
+
+- Suportar o ch57x-1 em leitura e escrita. É o dialeto mais comum (`1189:88xx`), e o layout de registro está documentado no PROTOCOL.md do macropad-rebind.
+- Trocar de camada pelo app só tem comando conhecido no ch57x-2 (`A1 camada`). No teclado do usuário, ainda não existe.
