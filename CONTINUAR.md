@@ -63,9 +63,27 @@ open src-tauri/target/release/bundle/macos/Padturn.app
    - Falta descobrir o que fazem os modos 0, 3, 4 e 5. Quem tiver o teclado na mão deve testar e dar nome em `LED_MODE_NAMES` (`ui/app.js`), por modelo e firmware.
 3. *(item fundido no 2.)*
 4. **Outros modelos.** O desenho e a ordem dos knobs fora do 12+4 são um palpite. O destaque ao vivo confirma quando alguém tiver um desses modelos.
-5. **CI e instalador do Windows.**
+5. **CI e instalador do Windows.** YAML escrito (`azure-pipelines.yml`), falta criar o pipeline no Azure DevOps e rodar.
 
 ## Últimas mudanças
+
+### Usabilidade (2026-11-13, feito sem o usuário; conferido na tela com o teclado conectado)
+
+- **Teclado encontrado sozinho.** O app procura o teclado a cada 1,5 s (comando `present`, que não abre o aparelho). Ao conectar, lê sozinho. Se a leitura falhar (ex.: MINI_KEYBOARD aberto), tenta de novo a cada 4 s sem piscar a tela. Ao desconectar, avisa e desativa Gravar. Se voltar com alterações pendentes, elas ficam.
+  - Bolinha verde na barra de status = conectado.
+- **Desfazer/Refazer** (⌘Z / ⇧⌘Z) de qualquer alteração pendente. Num campo de texto, ⌘Z desfaz o texto.
+- **Barra de menus do macOS** em português: Arquivo (Ler ⌘R, Gravar ⌘S, Exportar ⇧⌘E, Restaurar ⇧⌘O), Editar, Visualizar (Camada ⌘1–3, Girar ⌥⌘R).
+  - No Windows os mesmos atalhos com Ctrl, tratados pela página.
+  - Durante a captura de tecla os atalhos do menu ficam desligados, para dar para gravar ⌘Z, ⌘S etc. como tecla (testado).
+- **Esc** para a captura ou desmarca.
+- **Não perde alterações:** "Ler" e fechar a janela/⌘Q pedem confirmação se houver alterações não gravadas.
+- **Aviso no centro** (estilo HUD do macOS) ao gravar, salvar backup e conectar.
+- **Espaçamento:** escala de 4 px (`--s1`…`--s6` em `style.css`). Seções do painel a 24 px, título→conteúdo 8 px, grupos 12 px. Tirado o rótulo acima do título do painel (o nome da camada já está na barra). Ícones desenhados em SVG no lugar de glifos/emoji. Amostra "sem luz" riscada.
+- **Trava de dialeto:** só grava em teclado `0x514C`. Os `0x1189` falam ch57x-1; o Padturn recusa gravar com mensagem clara.
+- `azure-pipelines.yml`: build do instalador NSIS no Windows. **Ainda não rodado.**
+
+Não conferido: modo escuro (precisaria mudar o sistema), desconectar o cabo de verdade, o pipeline do Windows.
+
 
 - Knobs: a tampa gira para o lado em que o knob foi girado (30° por clique, acumulando). Apertar afunda o knob. Pedido do usuário; ainda não conferido com o knob físico.
 - Escolher "Tecla" sem tecla vira um rascunho: aparece no painel, mas não conta para Gravar.

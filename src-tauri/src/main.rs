@@ -5,6 +5,11 @@ use tauri::Manager;
 use tauri_plugin_dialog::DialogExt;
 
 #[tauri::command(async)]
+fn present() -> bool {
+    hid::present()
+}
+
+#[tauri::command(async)]
 fn read_all() -> Result<hid::Snapshot, String> {
     hid::Kb::open()?.read_all()
 }
@@ -46,7 +51,7 @@ fn open_backup(app: tauri::AppHandle) -> Result<Option<String>, String> {
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![read_all, write_entries, backups_dir, save_backup, open_backup])
+        .invoke_handler(tauri::generate_handler![present, read_all, write_entries, backups_dir, save_backup, open_backup])
         .run(tauri::generate_context!())
         .expect("erro ao iniciar o Padturn");
 }

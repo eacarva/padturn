@@ -8,6 +8,12 @@ const ENTRIES = 25;
 const PARTS = [["↺", "Girar ←"], ["●", "Apertar"], ["↻", "Girar →"]]; // entry order inside a knob (vendor app)
 const PRESS = 1;
 
+const ICON = {
+  keyboard: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="12" width="38" height="26" rx="5"/><circle cx="15" cy="21" r="3.5"/><path d="M24 19h3M31 19h3M24 25h3M31 25h3M13 31h22"/></svg>',
+  pointer: '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 10l20 12-9 2.5 6 10-4 2.3-6-10L14 33z"/></svg>',
+  check: '<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 21l6 6 12-14"/></svg>',
+};
+const icon = (name) => { const s = document.createElement("span"); s.innerHTML = ICON[name]; return s.firstChild; };
 const store = (k, fallback) => { try { return JSON.parse(localStorage.getItem(k)) ?? fallback; } catch { return fallback; } };
 const persist = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 
@@ -27,6 +33,8 @@ const S = {
   rotation: store("rotation", 0),
   labels: store("labels", DEFAULT_LABELS),
   busy: false,
+  connected: false,      // keyboard seen on USB (hot-plug poll)
+  error: "",             // last read error, shown in the empty state
   capture: null,         // null | "key" | "macro"
   layout: layoutFor(12, 4),
 };
@@ -58,21 +66,72 @@ function setLed(l, next) {
 
 function status(msg, busy = false) { $("status").textContent = msg; $("spinner").hidden = !busy; S.busy = busy; renderToolbar(); }
 
-async function run(msg, fn, done) {
-  status(msg, true);
+// Undo/redo: every render() remembers the pending edits if they changed; live drags only redraw, so a
+// whole drag is one step. Reading or writing the keyboard starts a fresh history.
+const hist = { list: [], at: -1 };
+const stateNow = () => JSON.stringify([[...S.edits], [...S.ledEdits], [...drafts]]);
+function remember() {
+  const s = stateNow();
+  if (hist.list[hist.at] === s) return;
+  hist.list.splice(hist.at + 1); hist.list.push(s); hist.at++;
+}
+function travel(d) {
+  const s = hist.list[hist.at + d];
+  if (s == null || S.busy) return;
+  hist.at += d;
+  const [e, l, dr] = JSON.parse(s);
+  S.edits = new Map(e); S.ledEdits = new Map(l); drafts.clear(); dr.forEach(([k, v]) => drafts.set(k, v));
+  S.capture = null; render();
+}
+
+async function run(msg, fn, done, quiet = false) {
+  quiet ? (S.busy = true) : status(msg, true);
   try {
     const snap = await fn();
     const relayout = !S.snap || snap.keys !== S.snap.keys || snap.knobs !== S.snap.knobs;
-    S.snap = snap; S.edits.clear(); S.ledEdits.clear(); drafts.clear();
+    S.snap = snap; S.edits.clear(); S.ledEdits.clear(); drafts.clear(); hist.list = []; hist.at = -1;
     if (relayout) { S.layout = layoutFor(snap.keys, snap.knobs); S.selected = null; buildBoard(); }
+    S.connected = true; S.error = "";
     status(`${done} · ${snap.keys} teclas, ${snap.knobs} knobs, firmware ${snap.firmware}`);
-  } catch (e) { status(String(e)); }
-  render();
+    render();
+    return true;
+  } catch (e) {
+    S.error = String(e).replace(/^Error: /, "");
+    if (!quiet || $("status").textContent !== S.error) status(S.error); else S.busy = false;
+    render();
+    return false;
+  }
 }
 
-const readAll = () => run("Lendo o teclado…", () => invoke("read_all"), "Lido");
+async function readAll() {
+  if (S.busy) return;
+  if (pending() && !(await confirmSheet("Ler o teclado de novo?",
+    `${pending() === 1 ? "A alteração que ainda não foi gravada será descartada" : `As ${pending()} alterações que ainda não foram gravadas serão descartadas`}.`, "Descartar e ler"))) return;
+  run("Lendo o teclado…", () => invoke("read_all"), "Lido");
+}
+
+// Hot-plug: the keyboard is found (and read) as soon as the cable goes in. A failed read is retried quietly,
+// e.g. after the user closes the vendor app that was holding the keyboard.
+let lastTry = 0;
+async function poll() {
+  if (S.busy) return;
+  let on;
+  try { on = await invoke("present"); } catch { return; }
+  if (!on) {
+    if (S.connected) { S.connected = false; status("Teclado desconectado. Conecte o cabo USB para continuar."); }
+    else if (!S.snap && S.error) { S.error = ""; render(); }
+    return;
+  }
+  if (S.connected) return;
+  // back with unsaved edits: keep them (no re-read) and let Gravar work again
+  if (pending()) { S.connected = true; status("Teclado conectado de novo. Suas alterações continuam aqui."); return; }
+  if (Date.now() - lastTry < 4000) return;
+  lastTry = Date.now();
+  if (await run("Lendo o teclado…", () => invoke("read_all"), S.snap ? "Teclado conectado de novo" : "Lido", !!S.error)) hud("Teclado conectado");
+}
 
 function save() {
+  if (S.busy || !pending()) return;
   const want = [...S.edits];
   const entries = want.map(([k, a]) => { const [l, i] = k.split("-").map(Number); return encode(a, raw(l, i)); });
   if (entries.some((e) => !e)) return status("Há uma alteração que não dá para gravar; nada foi enviado.");
@@ -89,7 +148,16 @@ function save() {
       if (!got || got.mode !== d.mode || hex(got.rgb) !== hex(d.rgb)) throw new Error(`A luz da camada ${l} não gravou como esperado.`);
     });
     return snap;
-  }, "Gravado e conferido");
+  }, "Gravado e conferido").then((ok) => ok && hud("Gravado no teclado"));
+}
+
+// macOS-style HUD: a short confirmation in the middle of the board.
+function hud(msg) {
+  document.querySelector(".hud")?.remove();
+  const h = el("div", { className: "hud", role: "status" }, icon("check"), msg);
+  $("stage").append(h);
+  setTimeout(() => h.classList.add("out"), 1300);
+  setTimeout(() => h.remove(), 1700);
 }
 
 // Backup: { layers: { "1": ["03 fa 01 01 ...", ...] }, leds: { "1": {mode, rgb} } }
@@ -97,7 +165,7 @@ async function exportBackup() {
   if (!S.snap) return;
   const layers = Object.fromEntries(S.snap.layers.map((rows, l) => [String(l + 1), rows.map(hex)]));
   const leds = Object.fromEntries(S.snap.leds.map((d, l) => [String(l + 1), d]).filter(([, d]) => d));
-  try { if (await invoke("save_backup", { json: JSON.stringify({ layers, leds, labels: S.labels }, null, 1) })) status("Backup salvo."); }
+  try { if (await invoke("save_backup", { json: JSON.stringify({ layers, leds, labels: S.labels }, null, 1) })) { status("Backup salvo."); hud("Backup salvo"); } }
   catch (e) { status(String(e)); }
 }
 
@@ -198,11 +266,14 @@ function renderToolbar() {
   $("layers").style.setProperty("--x", `${on.offsetLeft}px`); $("layers").style.setProperty("--w", `${on.offsetWidth}px`);
   const n = pending();
   $("save").textContent = n ? `Gravar ${n}` : "Gravar";
-  $("save").disabled = S.busy || !n;
-  $("read").disabled = S.busy;
+  $("save").disabled = S.busy || !n || !S.connected;
+  $("read").disabled = S.busy || !S.connected;
   $("export").disabled = !S.snap;
-  $("restore").disabled = S.busy;
+  $("restore").disabled = S.busy || !S.connected;
   $("discard").disabled = !n;
+  $("dot").className = "dot" + (S.connected ? " on" : "");
+  $("dot").title = S.connected ? "Teclado conectado" : "Teclado não conectado";
+  syncMenu();
 }
 
 // ---------- inspector ----------
@@ -226,10 +297,12 @@ function renderEditor() {
   ed.dataset.sel = String(S.selected);
   ed.replaceChildren();
   const i = S.selected;
-  if (!S.snap) return ed.append(el("div", { className: "empty-state" }, el("div", { className: "big", textContent: "⌨︎" }),
-    el("p", { textContent: "Conecte o teclado pelo cabo USB e clique em Ler." })));
-  if (!i) return ed.append(el("div", { className: "empty-state" }, el("div", { className: "big", textContent: "↖︎" }),
-    el("p", { textContent: "Escolha uma tecla ou knob no desenho." })), layerActions(), ledLayerSection());
+  if (!S.snap) return ed.append(el("div", { className: "empty-state" + (S.error ? "" : " waiting") }, icon("keyboard"),
+    el("h2", { textContent: S.error ? "Não deu para ler o teclado" : "Conecte o teclado" }),
+    el("p", { textContent: S.error || "Use o cabo USB. O Padturn reconhece o teclado sozinho assim que ele for conectado." }),
+    S.error ? el("p", { className: "hint", textContent: "O Padturn tenta de novo sozinho a cada poucos segundos." }) : null));
+  if (!i) return ed.append(el("div", { className: "empty-state" }, icon("pointer"),
+    el("p", { textContent: "Clique numa tecla ou num knob do desenho para escolher o que ele faz." })), layerActions(), ledLayerSection());
 
   const c = ctlOf(i), a = action(S.layer, i);
 
@@ -243,8 +316,7 @@ function renderEditor() {
   });
   // Title and drawing name share one row: the name is a Padturn-only label, the title says what is selected.
   ed.prepend(el("header", { className: "head" },
-    el("div", {}, el("div", { className: "eyebrow", textContent: layerName(S.layer) }),
-      el("h2", { textContent: c.knob ? `Knob ${c.knob}` : `Tecla ${c.id}` })), lab));
+    el("h2", { textContent: c.knob ? `Knob ${c.knob}` : `Tecla ${c.id}` }), lab));
 
   if (a.kind === "other") {
     ed.append(section("Ação", el("p", { className: "hint", textContent: `${a.what}: mantido como está.` })));
@@ -410,7 +482,7 @@ function renderLightMenu() {
 const SWATCH = { "sem luz": "#0000", "cores por tecla": "linear-gradient(90deg,#ff453a,#ffd60a,#30d158,#0a84ff)",
   "irradia para as teclas vizinhas": "radial-gradient(circle,#fff 0 25%,#0a84ff 60%,#0000 75%)",
   "arco-íris": "linear-gradient(90deg,red,orange,yellow,lime,cyan,blue,magenta)", "ondas de cor": "linear-gradient(135deg,#ff2d55,#5856d6,#34c759,#ffcc00)" };
-const swatch = (m) => el("span", { className: "sw", style: `background:${SWATCH[(LED_MODE_NAMES[model()] ?? {})[m]] ?? "var(--ctrl)"}` });
+const swatch = (m) => el("span", { className: "sw" + ((LED_MODE_NAMES[model()] ?? {})[m] === "sem luz" ? " off" : ""), style: `background:${SWATCH[(LED_MODE_NAMES[model()] ?? {})[m]] ?? "var(--ctrl)"}` });
 function ledLayerSection() {
   const l = led(S.layer);
   if (!l) return null;
@@ -443,7 +515,7 @@ function layerActions() {
     if (await confirmSheet(`Limpar a camada ${l}?`, "Todas as teclas e knobs ficam em \"Nada\". Nada vai para o teclado até você clicar em Gravar.", "Limpar"))
       applyLayer(layerIds().map(() => ({ kind: "none" })));
   };
-  const dice = el("button", { textContent: "🎲 Sortear teclas", title: "Uma tecla diferente para cada controle, ao acaso" });
+  const dice = el("button", { textContent: "Sortear teclas", title: "Uma tecla diferente para cada controle, ao acaso" });
   dice.onclick = async () => {
     if (!(await confirmSheet(`Sortear a camada ${l}?`, "Cada tecla e cada giro/aperto de knob recebe uma letra ou número diferente, sem repetir nenhuma tecla já usada no teclado (outras camadas). Se acabarem, usa combinações com ⌃⌥⇧. Nada vai para o teclado até você clicar em Gravar.", "Sortear"))) return;
     const used = new Set();
@@ -463,7 +535,7 @@ function layerActions() {
   return section(`Camada ${l}`, name, el("div", { className: "row" }, clear, dice));
 }
 
-function render() { renderToolbar(); renderBoard(); renderEditor(); }
+function render() { renderToolbar(); renderBoard(); renderEditor(); remember(); }
 
 // ---------- sheets ----------
 
@@ -626,7 +698,9 @@ document.addEventListener("keydown", (e) => {
     const a = action(S.layer, i);
     if (a?.kind === "keys" && ((usage && a.key === usage) || (mod && !a.key && a.mods === mod))) hits.push(i);
   }
-  if (hits.length) { e.preventDefault(); flash(hits); }
+  if (!hits.length) return;
+  flash(hits);
+  if (!e.metaKey && !e.ctrlKey) e.preventDefault();  // never swallow ⌘/Ctrl shortcuts (menu, undo)
 });
 
 // Mouse-wheel knobs send scroll, not keys: light the entries set to that direction.
@@ -639,8 +713,90 @@ window.addEventListener("wheel", (e) => {
   if (hits.length) flash(hits);
 }, { passive: true });
 
+// ---------- commands: menu bar (macOS) and shortcuts ----------
+const MAC = /Mac/.test(navigator.platform);
+const inText = () => document.activeElement?.matches?.("input[type=text], input[type=number]");
+const setLayer = (l) => { if (l <= (S.snap?.layers.length ?? 3)) { S.layer = l; S.capture = null; render(); } };
+const discard = () => { S.edits.clear(); S.ledEdits.clear(); drafts.clear(); render(); };
+const rotate = () => { S.rotation += 90; persist("rotation", S.rotation % 360); fitBoard(); };
+// In a text field ⌘Z edits the text; elsewhere it undoes keyboard edits.
+const undo = () => (inText() ? document.execCommand("undo") : travel(-1));
+const redo = () => (inText() ? document.execCommand("redo") : travel(1));
+const COMMANDS = [
+  ["read", "Ler do teclado", "CmdOrCtrl+R", readAll],
+  ["save", "Gravar no teclado", "CmdOrCtrl+S", () => save()],
+  ["export", "Exportar backup…", "CmdOrCtrl+Shift+E", exportBackup],
+  ["restore", "Restaurar backup…", "CmdOrCtrl+Shift+O", restoreBackup],
+  ["undo", "Desfazer", "CmdOrCtrl+Z", undo],
+  ["redo", "Refazer", "CmdOrCtrl+Shift+Z", redo],
+  ["discard", "Descartar alterações", "", discard],
+  ["l1", "Camada 1", "CmdOrCtrl+1", () => setLayer(1)],
+  ["l2", "Camada 2", "CmdOrCtrl+2", () => setLayer(2)],
+  ["l3", "Camada 3", "CmdOrCtrl+3", () => setLayer(3)],
+  ["rotate", "Girar desenho", "CmdOrCtrl+Alt+R", rotate],
+];
+const cmd = Object.fromEntries(COMMANDS.map(([id, , , fn]) => [id, fn]));
+const menuItems = {};
+let menuCapture = null;
+// While a key is being captured the menu shortcuts are switched off, so ⌘Z or ⌘S can be recorded as keys.
+function syncMenu() {
+  const off = !!S.capture;
+  if (off === menuCapture || !Object.keys(menuItems).length) return;
+  menuCapture = off;
+  for (const m of Object.values(menuItems)) m.setEnabled(!off).catch(() => {});
+}
+async function buildMenu() {
+  const M = window.__TAURI__?.menu;
+  if (!MAC || !M) return false;
+  try {
+    const item = async (id) => {
+      const [, text, accelerator, fn] = COMMANDS.find((c) => c[0] === id);
+      return (menuItems[id] = await M.MenuItem.new({ id, text, accelerator: accelerator || undefined, action: () => fn() }));
+    };
+    const pre = (item, text) => M.PredefinedMenuItem.new(text ? { item, text } : { item });
+    const sub = async (text, items) => M.Submenu.new({ text, items: await Promise.all(items) });
+    const own = (text, accelerator, action) => M.MenuItem.new({ text, accelerator, action });
+    const sep = () => pre("Separator");
+    const menu = await M.Menu.new({ items: await Promise.all([
+      sub("Padturn", [pre({ About: { name: "Padturn" } }, "Sobre o Padturn"), sep(), pre("Services", "Serviços"), sep(),
+        pre("Hide", "Ocultar Padturn"), pre("HideOthers", "Ocultar Outros"), pre("ShowAll", "Mostrar Tudo"), sep(),
+        own("Encerrar Padturn", "CmdOrCtrl+Q", () => win?.close())]),
+      sub("Arquivo", [item("read"), item("save"), sep(), item("export"), item("restore"), sep(), own("Fechar Janela", "CmdOrCtrl+W", () => win?.close())]),
+      sub("Editar", [item("undo"), item("redo"), sep(), pre("Cut", "Recortar"), pre("Copy", "Copiar"), pre("Paste", "Colar"), pre("SelectAll", "Selecionar Tudo"), sep(), item("discard")]),
+      sub("Visualizar", [item("l1"), item("l2"), item("l3"), sep(), item("rotate"), sep(), pre("Fullscreen", "Entrar em Tela Cheia")]),
+      sub("Janela", [pre("Minimize", "Minimizar"), pre("Maximize", "Zoom")]),
+    ]) });
+    await menu.setAsAppMenu();
+    return true;
+  } catch (e) { console.warn("menu", e); return false; }
+}
+let hasMenu = false;
+buildMenu().then((ok) => { hasMenu = ok; syncMenu(); });
+// Without a menu bar (Windows, or if the menu failed) the same shortcuts come from the page.
+const ACCEL = Object.fromEntries(COMMANDS.filter((c) => c[2]).map(([id, , a]) => [a.replace("CmdOrCtrl+", "").replace("Alt+", "⌥").replace("Shift+", "⇧").toLowerCase(), id]));
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !document.querySelector("dialog[open]")) {
+    if (S.capture) { S.capture = null; render(); } else if (S.selected != null && !inText()) { S.selected = null; render(); }
+    return;
+  }
+  if (hasMenu || S.capture || !(MAC ? e.metaKey : e.ctrlKey) || document.querySelector("dialog[open]")) return;
+  const id = ACCEL[(e.altKey ? "⌥" : "") + (e.shiftKey ? "⇧" : "") + e.key.toLowerCase()];
+  if (!id) return;
+  e.preventDefault(); cmd[id]();
+});
+
+// Closing (or quitting) with edits that were never written asks first.
+const win = window.__TAURI__?.window?.getCurrentWindow?.();
+win?.onCloseRequested(async (e) => {
+  if (!pending()) return;
+  e.preventDefault();
+  const n = pending();
+  if (await confirmSheet("Fechar sem gravar?", `${n === 1 ? "Uma alteração ainda não foi gravada" : `${n} alterações ainda não foram gravadas`} no teclado e será${n === 1 ? "" : "ão"} perdida${n === 1 ? "" : "s"}.`, "Fechar sem gravar"))
+    win.destroy();
+});
+
 // ---------- wiring ----------
-document.body.classList.toggle("mac", /Mac/.test(navigator.platform));
+document.body.classList.toggle("mac", MAC);
 document.querySelectorAll("#layers button").forEach((b) => (b.onclick = () => { S.layer = Number(b.dataset.layer); S.capture = null; render(); }));
 // rotation keeps growing so the board always turns the same way; only the stored value wraps.
 // clicking anything on the stage that is not a control works like clicking outside the keyboard
@@ -648,15 +804,21 @@ $("stage").addEventListener("click", (e) => {
   if (e.target.closest(".ctl") || S.selected == null) return;
   S.selected = null; S.capture = null; render();
 });
-$("rotate").onclick = () => { S.rotation += 90; persist("rotation", S.rotation % 360); fitBoard(); };
+$("rotate").onclick = rotate;
 $("read").onclick = readAll;
-$("save").onclick = save;
+$("save").onclick = () => save();
 $("export").onclick = () => { $("backup").open = false; exportBackup(); };
 $("restore").onclick = () => { $("backup").open = false; restoreBackup(); };
-$("discard").onclick = () => { $("backup").open = false; S.edits.clear(); S.ledEdits.clear(); drafts.clear(); render(); };
+$("discard").onclick = () => { $("backup").open = false; discard(); };
+// shortcut hints in the tooltips, in the platform's own notation
+const K = MAC ? "⌘" : "Ctrl+";
+$("save").title = `Gravar no teclado (${K}S)`; $("read").title = `Ler de novo o que está no teclado (${K}R)`;
+document.querySelectorAll("#layers button").forEach((b) => (b.title = `${K}${b.dataset.layer}`));
+$("rotate").title += ` (${MAC ? "⌥⌘R" : "Ctrl+Alt+R"})`;
 $("stage").addEventListener("click", (e) => { if (e.target === $("stage")) { S.selected = null; S.capture = null; render(); } });
 document.addEventListener("click", (e) => { for (const m of ["backup", "light"]) if (!e.target.closest("#" + m)) $(m).open = false; });
 
 buildBoard();
 render();
-readAll();
+poll();
+setInterval(poll, 1500);

@@ -31,10 +31,15 @@ pub struct Snapshot {
     leds: Vec<Option<Led>>,    // [layer 1..3]; None when the model has no LEDs
 }
 
-pub struct Kb(HidDevice);
+pub struct Kb(HidDevice, u16); // device, vendor id
 
 fn err(e: impl std::fmt::Display) -> String {
     e.to_string()
+}
+
+/// Cheap presence check for hot-plug polling; does not open (or steal) the device.
+pub fn present() -> bool {
+    HidApi::new().map(|api| api.device_list().any(|d| VENDORS.contains(&d.vendor_id()) && d.usage_page() == 0xFF00)).unwrap_or(false)
 }
 
 impl Kb {
@@ -47,7 +52,7 @@ impl Kb {
         let dev = info
             .open_device(&api)
             .map_err(|_| "O teclado está em uso por outro programa. Feche o MINI_KEYBOARD e tente de novo.".to_string())?;
-        Ok(Kb(dev))
+        Ok(Kb(dev, info.vendor_id()))
     }
 
     fn send(&self, bytes: &[u8]) -> Result<(), String> {
@@ -103,6 +108,10 @@ impl Kb {
             .iter()
             .all(|e| e.len() == 64 && e[0] == 3 && (1..=ENTRIES as u8).contains(&e[2]) && (1..=3).contains(&e[3]));
         let leds_ok = leds.iter().all(|(l, d)| (1..=3).contains(l) && d.rgb.len() == LED_BYTES && d.mode < 16);
+        // 0x1189 boards speak ch57x-1 (FE writes, FD is commit): our FD writes are accepted and ignored.
+        if self.1 != 0x514C {
+            return Err("Este modelo usa outro protocolo de gravação, que o Padturn ainda não suporta. Nada foi gravado.".into());
+        }
         if !entries_ok || !leds_ok {
             return Err("Dados inválidos; nada foi gravado.".into());
         }
