@@ -129,3 +129,17 @@ No painel da direita, quando nada está selecionado. Ali já fica a "Iluminaçã
 - Mostrar ícones e outros elementos visuais para aprovação antes de aplicar.
 - Repositório privado.
 - Os códigos de tecla atuais são usados por um remapeador que os transforma em ações do Lightroom. Não trocar sem pedir.
+
+### Janela e Impeccable v4.9.0 (2026-11-13, tarde)
+- A janela abre com 820 px de altura (antes 720), e o painel de tecla e o de knob cabem sem rolagem.
+- Se o painel crescer (macro com muitos passos), a janela cresce sozinha até a altura da tela (`fitWindow` em app.js). Se o usuário redimensionar a janela à mão, ela para de crescer. O mínimo continua 900×560 para monitores pequenos.
+  - Não testado: o crescimento automático com um macro longo e um monitor pequeno.
+- O detector do Impeccable v4.9.0 rodou sobre ui/.
+  - Aplicado:
+    - easing sem overshoot (`--spring` virou ease-out exponencial);
+    - `--muted` no modo escuro passou para #a1a1a6, com contraste 4.5:1.
+  - Mantido de propósito:
+    - texto branco sobre #0a84ff (azul padrão do macOS);
+    - brilho colorido dos LEDs no desenho (simula a luz real);
+    - amostra "sem luz" riscada;
+    - preenchimento de 2 px do controle segmentado (padrão do macOS).

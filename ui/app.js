@@ -535,7 +535,7 @@ function layerActions() {
   return section(`Camada ${l}`, name, el("div", { className: "row" }, clear, dice));
 }
 
-function render() { renderToolbar(); renderBoard(); renderEditor(); remember(); }
+function render() { renderToolbar(); renderBoard(); renderEditor(); remember(); requestAnimationFrame(() => fitWindow().catch(() => {})); }
 
 // ---------- sheets ----------
 
@@ -794,6 +794,26 @@ win?.onCloseRequested(async (e) => {
   if (await confirmSheet("Fechar sem gravar?", `${n === 1 ? "Uma alteração ainda não foi gravada" : `${n} alterações ainda não foram gravadas`} no teclado e será${n === 1 ? "" : "ão"} perdida${n === 1 ? "" : "s"}.`, "Fechar sem gravar"))
     win.destroy();
 });
+
+// The window grows to show the whole side panel (no scrolling), up to the screen height. Once the user resizes it
+// by hand (small monitor), that size is theirs and the window stops growing.
+let fitH = 0, userSized = false;
+win?.onResized(async ({ payload }) => {
+  const h = payload.height / (await win.scaleFactor());
+  if (!fitH || Math.abs(h - fitH) > 2) userSized = true;  // any resize that is not ours
+});
+async function fitWindow() {
+  const ed = $("editor"), extra = ed.scrollHeight - ed.clientHeight;
+  if (!win || userSized || extra <= 0 || (await win.isMaximized()) || (await win.isFullscreen())) return;
+  const sf = await win.scaleFactor();
+  const size = (await win.innerSize()).toLogical(sf), pos = (await win.outerPosition()).toLogical(sf);
+  const top = screen.availTop ?? 0, room = screen.availHeight - 8;
+  const h = Math.min(size.height + extra, room);
+  if (h <= size.height) return;
+  fitH = h;
+  await win.setSize(new window.__TAURI__.dpi.LogicalSize(size.width, h));
+  if (pos.y + h > top + room) await win.setPosition(new window.__TAURI__.dpi.LogicalPosition(pos.x, Math.max(top, top + room - h)));
+}
 
 // ---------- wiring ----------
 document.body.classList.toggle("mac", MAC);
