@@ -33,7 +33,7 @@ open src-tauri/target/release/bundle/macos/Padturn.app
 ```
 
 - **Windows:** o código compila para `x86_64-pc-windows-msvc`. O instalador precisa ser gerado no Windows (`npx tauri build`) ou num CI.
-  - A ideia é usar Azure Pipelines, para manter o repositório privado sem gastar minutos do GitHub. O YAML ainda não foi escrito.
+  - O CI é o GitHub Actions (`.github/workflows/build.yml`), grátis porque o repositório vai ser público.
 - **Regra:** o app MINI_KEYBOARD prende o teclado. Feche-o antes de usar o Padturn.
 
 ## Estado (2026-11-12)
@@ -63,7 +63,7 @@ open src-tauri/target/release/bundle/macos/Padturn.app
    - Falta descobrir o que fazem os modos 0, 3, 4 e 5. Quem tiver o teclado na mão deve testar e dar nome em `LED_MODE_NAMES` (`ui/app.js`), por modelo e firmware.
 3. *(item fundido no 2.)*
 4. **Outros modelos.** O desenho e a ordem dos knobs fora do 12+4 são um palpite. O destaque ao vivo confirma quando alguém tiver um desses modelos.
-5. **CI e instalador do Windows.** YAML escrito (`azure-pipelines.yml`), falta criar o pipeline no Azure DevOps e rodar.
+5. **CI e instaladores.** Workflow escrito; falta publicar o repositório e rodar (tag `v*` ou à mão). Builds sem assinatura.
 
 ## Últimas mudanças
 
@@ -80,7 +80,8 @@ open src-tauri/target/release/bundle/macos/Padturn.app
 - **Aviso no centro** (estilo HUD do macOS) ao gravar, salvar backup e conectar.
 - **Espaçamento:** escala de 4 px (`--s1`…`--s6` em `style.css`). Seções do painel a 24 px, título→conteúdo 8 px, grupos 12 px. Tirado o rótulo acima do título do painel (o nome da camada já está na barra). Ícones desenhados em SVG no lugar de glifos/emoji. Amostra "sem luz" riscada.
 - **Trava de dialeto:** só grava em teclado `0x514C`. Os `0x1189` falam ch57x-1; o Padturn recusa gravar com mensagem clara.
-- `azure-pipelines.yml`: build do instalador NSIS no Windows. **Ainda não rodado.**
+- `.github/workflows/build.yml`: testes a cada push; `.dmg` universal e `.exe` (NSIS) numa tag `v*` ou à mão, em release rascunho. **Ainda não rodado.**
+- `LICENSE.md`: PolyForm Shield 1.0.0 (pode usar e mudar, não pode competir vendendo).
 
 Não conferido: modo escuro (precisaria mudar o sistema), desconectar o cabo de verdade, o pipeline do Windows.
 
