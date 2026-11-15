@@ -1,6 +1,7 @@
 import { MODS, MEDIA, MOUSE, MACRO_MAX, MACRO_DELAY, keyName, stepName, decode, encode, same, text, codeToUsage, modOfCode, drawKeys } from "./model.js";
 import { layoutFor, ledIndex } from "./layouts.js";
 import { emitted, hsvToRgb, rgbToHsv, BASICS } from "./led.js";
+import { initSupport, nag, onSupporter } from "./support.js";
 
 const invoke = window.__TAURI__?.core?.invoke ?? (async () => { throw new Error("Abra pelo app Padturn."); });
 const $ = (id) => document.getElementById(id);
@@ -107,6 +108,7 @@ async function readAll() {
   if (S.busy) return;
   if (pending() && !(await confirmSheet("Ler o teclado de novo?",
     `${pending() === 1 ? "A alteração que ainda não foi gravada será descartada" : `As ${pending()} alterações que ainda não foram gravadas serão descartadas`}.`, "Descartar e ler"))) return;
+  await nag();
   run("Lendo o teclado…", () => invoke("read_all"), "Lido");
 }
 
@@ -130,8 +132,10 @@ async function poll() {
   if (await run("Lendo o teclado…", () => invoke("read_all"), S.snap ? "Teclado conectado de novo" : "Lido", !!S.error)) hud("Teclado conectado");
 }
 
-function save() {
+async function save() {
   if (S.busy || !pending()) return;
+  await nag();
+  if (S.busy || !pending()) return; // the keyboard may have been read or edits discarded meanwhile
   const want = [...S.edits];
   const entries = want.map(([k, a]) => { const [l, i] = k.split("-").map(Number); return encode(a, raw(l, i)); });
   if (entries.some((e) => !e)) return status("Há uma alteração que não dá para gravar; nada foi enviado.");
@@ -755,7 +759,8 @@ async function buildMenu() {
     };
     const pre = (item, text) => M.PredefinedMenuItem.new(text ? { item, text } : { item });
     const sub = async (text, items) => M.Submenu.new({ text, items: await Promise.all(items) });
-    const own = (text, accelerator, action) => M.MenuItem.new({ text, accelerator, action });
+    // kept in menuItems so syncMenu turns ⌘Q/⌘W off while a key is captured (they can be recorded as keys)
+    const own = async (text, accelerator, action) => (menuItems[text] = await M.MenuItem.new({ text, accelerator, action }));
     const sep = () => pre("Separator");
     const menu = await M.Menu.new({ items: await Promise.all([
       sub("Padturn", [pre({ About: { name: "Padturn" } }, "Sobre o Padturn"), sep(), pre("Services", "Serviços"), sep(),
@@ -840,5 +845,7 @@ document.addEventListener("click", (e) => { for (const m of ["backup", "light"])
 
 buildBoard();
 render();
+onSupporter((p) => { $("supporter").textContent = `Apoiador: ${p.n}`; $("supporter").hidden = false; });
+initSupport().then(nag);
 poll();
 setInterval(poll, 1500);

@@ -51,6 +51,7 @@ fn open_backup(app: tauri::AppHandle) -> Result<Option<String>, String> {
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![present, read_all, write_entries, backups_dir, save_backup, open_backup])
         .run(tauri::generate_context!())
         .expect("erro ao iniciar o Padturn");

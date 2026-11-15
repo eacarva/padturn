@@ -1,0 +1,14 @@
+name = "padturn-licenca"
+main = "src/index.js"
+compatibility_date = "2025-06-01"
+
+# npx wrangler kv namespace create ORDERS  -> paste the id below
+[[kv_namespaces]]
+binding = "ORDERS"
+id = "801148fc8ca84683a65f315b0ba46f2a"
+
+[vars]
+MAIL_FROM = "Padturn <padturn@sistema.elissonandrade.com.br>"
+
+# Secrets (npx wrangler secret put NAME): LICENSE_PRIVATE_KEY (worker/.dev.vars), KOFI_TOKEN, RESEND_API_KEY,
+# OWNER_EMAIL (kept out of the repo, which will be public)
