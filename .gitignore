@@ -4,3 +4,5 @@ src-tauri/gen/
 .DS_Store
 worker/.dev.vars
 worker/.wrangler/
+re/
+backups/
