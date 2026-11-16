@@ -79,11 +79,32 @@ O Windows ainda está em teste: se algo não funcionar, [abra uma issue](https:/
 
 ## Compatibilidade
 
+### O meu teclado serve?
+
+O Padturn foi feito e testado com este teclado, vendido no AliExpress e na Shopee por vários vendedores:
+
+- **12 teclas** pretas em grade 4×3, com luz RGB embaixo e na borda.
+- **4 knobs de alumínio** ao lado das teclas: dois pequenos, um médio e um grande.
+- Base de metal cinza em formato de "L", cabo USB-C.
+- Anúncios com nomes como *"12 teclas 4 botões macro teclado personalizado RGB hotswap macropad para Photoshop"*,
+  *"mini keyboard 12 keys 4 knobs"* ou *"macro pad 4 knob"*, às vezes com a opção *"3-mode"* (cabo, Bluetooth e 2.4G).
+
+O jeito mais rápido de confirmar: **se o vendedor manda baixar um app chamado `MINI_KEYBOARD`**, é a família certa.
+
+Para ter certeza, veja o código USB com o teclado no cabo:
+
+- **Mac:** menu  → Sobre Este Mac → Mais Informações → Relatório do Sistema → USB. Procure `0x514c` no ID do fornecedor.
+- **Windows:** Gerenciador de Dispositivos → o teclado → Propriedades → Detalhes → IDs de hardware. Procure `VID_514C`.
+
+Ao ler o teclado, o Padturn mostra no rodapé quantas teclas, quantos knobs e qual firmware ele tem.
+
+### Modelos
+
 | Teclado | Situação |
 |---|---|
-| 12 teclas + 4 knobs (USB `514C:8850`) | ✅ Testado no hardware: teclas, knobs, mídia, mouse, macros e luzes |
-| Outros modelos `514C` (3 a 21 teclas, 0 a 4 knobs) | 🧪 Devem funcionar; o desenho é calculado e pode sair diferente do físico |
-| Modelos `1189` e firmware antigo | ❌ Usam outro protocolo; o Padturn avisa e não grava |
+| 12 teclas + 4 knobs (USB `514C:8850`, firmware 11) | ✅ Testado no hardware: teclas, knobs, mídia, mouse, macros e luzes |
+| Outros modelos `514C` com firmware 10 ou mais novo (3 a 21 teclas, 0 a 4 knobs) | 🧪 Devem funcionar; o desenho é calculado e pode sair diferente do físico |
+| Modelos `1189` e qualquer modelo com firmware abaixo de 10 | ❌ Usam outro protocolo; o Padturn avisa e não grava |
 
 Tem outro modelo? [Abra uma issue](https://github.com/eacarva/padturn/issues) com uma foto. Isso ajuda a acertar o desenho.
 
