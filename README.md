@@ -19,7 +19,7 @@ num app bonito, em português, que mostra o teclado de verdade na tela.
 
 <br>
 
-<img src="docs/padturn.png" width="720" alt="Padturn mostrando o teclado com as teclas configuradas para o Lightroom">
+<img src="docs/padturn.png" width="860" alt="Padturn com o teclado conectado: teclas e knobs configurados para o Lightroom, cores por tecla e o editor da tecla Desfazer aberto">
 
 </div>
 
