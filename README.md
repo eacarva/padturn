@@ -93,7 +93,7 @@ O jeito mais rápido de confirmar: **se o vendedor manda baixar um app chamado `
 
 Para ter certeza, veja o código USB com o teclado no cabo:
 
-- **Mac:** menu  → Sobre Este Mac → Mais Informações → Relatório do Sistema → USB. Procure `0x514c` no ID do fornecedor.
+- **Mac:** menu Apple → Sobre Este Mac → Mais Informações → Relatório do Sistema → USB. Procure `0x514c` no ID do fornecedor.
 - **Windows:** Gerenciador de Dispositivos → o teclado → Propriedades → Detalhes → IDs de hardware. Procure `VID_514C`.
 
 Ao ler o teclado, o Padturn mostra no rodapé quantas teclas, quantos knobs e qual firmware ele tem.
