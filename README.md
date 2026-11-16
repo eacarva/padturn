@@ -81,6 +81,8 @@ O Windows ainda está em teste: se algo não funcionar, [abra uma issue](https:/
 
 ### O meu teclado serve?
 
+<p align="center"><img src="docs/teclado.jpg" width="420" alt="Mini teclado de 12 teclas pretas com luz RGB e 4 knobs de alumínio, com cabo USB-C"></p>
+
 O Padturn foi feito e testado com este teclado, vendido no AliExpress e na Shopee por vários vendedores:
 
 - **12 teclas** pretas em grade 4×3, com luz RGB embaixo e na borda.
